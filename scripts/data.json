@@ -1,0 +1,204 @@
+{
+  "learningPath": {
+    "id": "naming-kingdom",
+    "title": "Naming Kingdom",
+    "description": "Learn the basics of nouns in a magical land.",
+    "order": 1
+  },
+  "milestones": [
+    {
+      "id": "missing-names",
+      "learning_path_id": "naming-kingdom",
+      "title": "Missing Names",
+      "story_intro": "The Great Wizard lost the names of all the things in his tower! Help him find the nouns to restore order.",
+      "completion_message": "You found all the missing nouns! The tower is back to normal.",
+      "order": 1,
+      "xp_reward": 50
+    },
+    {
+      "id": "special-names",
+      "learning_path_id": "naming-kingdom",
+      "title": "Special Names",
+      "story_intro": "Every hero needs a proper name. Discover the Special Names (Proper Nouns) hidden in the kingdom.",
+      "completion_message": "You mastered the Special Names! The heroes are very grateful.",
+      "order": 2,
+      "xp_reward": 50
+    },
+    {
+      "id": "one-and-many",
+      "learning_path_id": "naming-kingdom",
+      "title": "One & Many",
+      "story_intro": "The forest creatures are multiplying! Learn how to count One and Many (Singular and Plural Nouns).",
+      "completion_message": "You organized the forest! You know exactly how many creatures there are.",
+      "order": 3,
+      "xp_reward": 50
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "milestone_id": "missing-names",
+      "concept": "noun",
+      "skill": "identify",
+      "difficulty": "easy",
+      "question_type": "mcq",
+      "prompt": "Which word is a person, place, or thing?",
+      "options": ["run", "apple", "quickly", "blue"],
+      "answer": "apple"
+    },
+    {
+      "id": "q2",
+      "milestone_id": "missing-names",
+      "concept": "noun",
+      "skill": "identify",
+      "difficulty": "easy",
+      "question_type": "mcq",
+      "prompt": "Identify the noun in this sentence: The cat slept.",
+      "options": ["The", "cat", "slept"],
+      "answer": "cat"
+    },
+    {
+      "id": "q3",
+      "milestone_id": "missing-names",
+      "concept": "noun",
+      "skill": "identify",
+      "difficulty": "medium",
+      "question_type": "mcq",
+      "prompt": "Which of these is a place?",
+      "options": ["happiness", "school", "jump", "tall"],
+      "answer": "school"
+    },
+    {
+      "id": "q4",
+      "milestone_id": "missing-names",
+      "concept": "noun",
+      "skill": "identify",
+      "difficulty": "medium",
+      "question_type": "mcq",
+      "prompt": "Find the noun: The big sun shines.",
+      "options": ["The", "big", "sun", "shines"],
+      "answer": "sun"
+    },
+    {
+      "id": "q5",
+      "milestone_id": "missing-names",
+      "concept": "noun",
+      "skill": "identify",
+      "difficulty": "easy",
+      "question_type": "mcq",
+      "prompt": "Which word is a noun?",
+      "options": ["dog", "bark", "loud", "very"],
+      "answer": "dog"
+    },
+    {
+      "id": "q6",
+      "milestone_id": "special-names",
+      "concept": "proper-noun",
+      "skill": "identify",
+      "difficulty": "easy",
+      "question_type": "mcq",
+      "prompt": "Which word needs a capital letter?",
+      "options": ["city", "london", "river", "mountain"],
+      "answer": "london"
+    },
+    {
+      "id": "q7",
+      "milestone_id": "special-names",
+      "concept": "proper-noun",
+      "skill": "identify",
+      "difficulty": "easy",
+      "question_type": "mcq",
+      "prompt": "Identify the proper noun: My friend Sarah likes to read.",
+      "options": ["friend", "Sarah", "read", "likes"],
+      "answer": "Sarah"
+    },
+    {
+      "id": "q8",
+      "milestone_id": "special-names",
+      "concept": "proper-noun",
+      "skill": "identify",
+      "difficulty": "medium",
+      "question_type": "mcq",
+      "prompt": "Which is a special name?",
+      "options": ["month", "tuesday", "day", "week"],
+      "answer": "tuesday"
+    },
+    {
+      "id": "q9",
+      "milestone_id": "special-names",
+      "concept": "proper-noun",
+      "skill": "identify",
+      "difficulty": "medium",
+      "question_type": "mcq",
+      "prompt": "Find the proper noun: We visited Mount Everest.",
+      "options": ["We", "visited", "Mount Everest", "mountain"],
+      "answer": "Mount Everest"
+    },
+    {
+      "id": "q10",
+      "milestone_id": "special-names",
+      "concept": "proper-noun",
+      "skill": "identify",
+      "difficulty": "easy",
+      "question_type": "mcq",
+      "prompt": "Which of these is a proper noun?",
+      "options": ["dog", "cat", "rover", "Rover"],
+      "answer": "Rover"
+    },
+    {
+      "id": "q11",
+      "milestone_id": "one-and-many",
+      "concept": "plural-noun",
+      "skill": "identify",
+      "difficulty": "easy",
+      "question_type": "mcq",
+      "prompt": "What is the plural of 'cat'?",
+      "options": ["cat", "cates", "cats", "caties"],
+      "answer": "cats"
+    },
+    {
+      "id": "q12",
+      "milestone_id": "one-and-many",
+      "concept": "plural-noun",
+      "skill": "identify",
+      "difficulty": "easy",
+      "question_type": "mcq",
+      "prompt": "Which word means more than one?",
+      "options": ["dog", "dogs", "puppy", "hound"],
+      "answer": "dogs"
+    },
+    {
+      "id": "q13",
+      "milestone_id": "one-and-many",
+      "concept": "plural-noun",
+      "skill": "identify",
+      "difficulty": "medium",
+      "question_type": "mcq",
+      "prompt": "What is the plural of 'box'?",
+      "options": ["boxs", "box", "boxes", "boxies"],
+      "answer": "boxes"
+    },
+    {
+      "id": "q14",
+      "milestone_id": "one-and-many",
+      "concept": "plural-noun",
+      "skill": "identify",
+      "difficulty": "medium",
+      "question_type": "mcq",
+      "prompt": "Find the plural noun: The children played in the park.",
+      "options": ["children", "played", "park", "The"],
+      "answer": "children"
+    },
+    {
+      "id": "q15",
+      "milestone_id": "one-and-many",
+      "concept": "plural-noun",
+      "skill": "identify",
+      "difficulty": "easy",
+      "question_type": "mcq",
+      "prompt": "What is the plural of 'baby'?",
+      "options": ["babys", "babies", "baby", "babyes"],
+      "answer": "babies"
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+[
+  {
+    "id": "MN",
+    "learning_path_id": "noun_kingdom",
+    "title": "Missing Names",
+    "story_intro": "The villagers have forgotten the names of everyday people, places, animals and things. Help restore the missing names.",
+    "completion_message": "You helped the villagers remember everyday names!",
+    "order": 1,
+    "xp_reward": 50,
+    "badge_name": "Name Finder",
+    "badge_icon": "️",
+    "concept": "common_noun"
+  },
+  {
+    "id": "SN",
+    "learning_path_id": "noun_kingdom",
+    "title": "Special Names",
+    "story_intro": "Important names across the kingdom have disappeared from maps, letters and signs. Restore the special names.",
+    "completion_message": "The kingdom's special names shine again!",
+    "order": 2,
+    "xp_reward": 50,
+    "badge_name": "Royal Messenger",
+    "badge_icon": "",
+    "concept": "proper_noun"
+  },
+  {
+    "id": "OM",
+    "learning_path_id": "noun_kingdom",
+    "title": "One & Many",
+    "story_intro": "The Counting Bridge is damaged. Help sort things into one and many to repair the bridge.",
+    "completion_message": "The bridge is repaired and travelers can cross safely.",
+    "order": 3,
+    "xp_reward": 50,
+    "badge_name": "Bridge Builder",
+    "badge_icon": "",
+    "concept": "singular_plural"
+  },
+  {
+    "id": "SP",
+    "learning_path_id": "noun_kingdom",
+    "title": "Strange Plurals",
+    "story_intro": "A wizard's spell has scrambled unusual words. Help fix magical words that refuse to follow normal rules.",
+    "completion_message": "The enchanted dictionary is restored.",
+    "order": 4,
+    "xp_reward": 50,
+    "badge_name": "Word Wizard",
+    "badge_icon": "彩",
+    "concept": "irregular_plural"
+  },
+  {
+    "id": "TT",
+    "learning_path_id": "noun_kingdom",
+    "title": "Team Trouble",
+    "story_intro": "Groups throughout the kingdom have become separated. Help reunite animals, people and objects into their teams.",
+    "completion_message": "The kingdom's teams are together again.",
+    "order": 5,
+    "xp_reward": 50,
+    "badge_name": "Team Keeper",
+    "badge_icon": "",
+    "concept": "collective_noun"
+  },
+  {
+    "id": "MW",
+    "learning_path_id": "noun_kingdom",
+    "title": "Magic Workshop",
+    "story_intro": "Builders have forgotten what things are made from. Help rebuild the kingdom's workshop.",
+    "completion_message": "The workshop is buzzing with activity again.",
+    "order": 6,
+    "xp_reward": 50,
+    "badge_name": "Master Builder",
+    "badge_icon": "",
+    "concept": "material_noun"
+  },
+  {
+    "id": "FT",
+    "learning_path_id": "noun_kingdom",
+    "title": "Family Tree",
+    "story_intro": "The Royal Family Tree has lost its labels. Help reconnect family and friend relationships.",
+    "completion_message": "The family tree is complete once more.",
+    "order": 7,
+    "xp_reward": 50,
+    "badge_name": "Family Guardian",
+    "badge_icon": "",
+    "concept": "gender_noun"
+  },
+  {
+    "id": "IT",
+    "learning_path_id": "noun_kingdom",
+    "title": "Invisible Treasures",
+    "story_intro": "The kingdom's most valuable treasures cannot be touched or seen. Discover hidden treasures like courage, kindness and joy.",
+    "completion_message": "You uncovered the kingdom's invisible treasures.",
+    "order": 8,
+    "xp_reward": 50,
+    "badge_name": "Treasure Finder",
+    "badge_icon": "",
+    "concept": "abstract_noun"
+  },
+  {
+    "id": "OI",
+    "learning_path_id": "noun_kingdom",
+    "title": "Ownership Island",
+    "story_intro": "Objects across the island have lost their owners. Help return every item to the correct person or animal.",
+    "completion_message": "Every treasure has found its rightful owner.",
+    "order": 9,
+    "xp_reward": 50,
+    "badge_name": "Island Protector",
+    "badge_icon": "️",
+    "concept": "possessive_noun"
+  }
+]

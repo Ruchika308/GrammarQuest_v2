@@ -1,0 +1,25 @@
+# GrammarQuest MVP Task List
+
+- `[x]` Phase 1 & 2: Content Foundation & Question Validation
+  - `[x]` Create `scripts/validator.ts` to validate structure, distributions, duplicates, and correct answers.
+  - `[x]` Integrate validator with the seeding flow to export questions to local JSON files (`src/lib/data/questions.json`).
+  - `[x]` Run and output validation results for the first iteration.
+- `[x]` Phase 3 & 10: Local JSON and localStorage Provider
+  - `[x]` Create `src/lib/storage.ts` to manage player profile, milestones, sessions, answers, and mastery.
+  - `[x]` Save local progress, XP, completed status, and mastery percentage to browser `localStorage`.
+- `[x]` Phase 4 & 5: Gameplay Engine & Hearts System
+  - `[x]` Update `game-store.tsx` to read/write state using local storage instead of MongoDB.
+  - `[x]` Implement gameplay session generator (5 questions: 2 Rec, 1 Class, 1 App, 1 Trans) with immediate-repeat protection.
+  - `[x]` Inject 1 review question from previously completed milestones after Milestone 2.
+  - `[x]` Implement hearts logic (start with 3, lose 1 per wrong answer, retry screen at 0).
+- `[x]` Phase 6, 7 & 8: XP, Mastery, and progression unlocking
+  - `[x]` Implement correct answers XP (+10 XP) and perfect session bonus (+10 XP).
+  - `[x]` Calculate milestone mastery percentage: `(correct / attempted) * 100`.
+  - `[x]` Lock/Unlock next milestones: unlock when mastery >= 80%.
+- `[x]` Phase 9 & 11: World Map & Local Analytics
+  - `[x]` Refactor `map.tsx` and `lesson.$id.tsx` to handle visual states (locked, unlocked, completed) and render XP/badges.
+  - `[x]` Implement basic event analytics tracking saved to `localStorage`.
+- `[ ]` Verification & Walkthrough
+  - `[ ]` Run the validation script and start dev server to manual test gameplay loops.
+  - `[ ]` Verify local persistence after page reload.
+  - `[ ]` Generate `walkthrough.md` report.
