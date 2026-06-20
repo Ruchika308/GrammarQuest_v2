@@ -49,7 +49,12 @@ export const storage = {
       return DEFAULT_PROFILE;
     }
     try {
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      return {
+        ...DEFAULT_PROFILE,
+        ...parsed,
+        badges: parsed.badges || [],
+      };
     } catch {
       return DEFAULT_PROFILE;
     }
@@ -183,5 +188,34 @@ export const storage = {
     localStorage.removeItem("gq_progress");
     localStorage.removeItem("gq_answers");
     localStorage.removeItem("gq_sessions");
+    this.clearAuth();
+  },
+
+  saveAuth(token: string, user: any): void {
+    if (!isBrowser) return;
+    localStorage.setItem("auth_token", token);
+    localStorage.setItem("google_user", JSON.stringify(user));
+  },
+
+  getAuthToken(): string | null {
+    if (!isBrowser) return null;
+    return localStorage.getItem("auth_token");
+  },
+
+  getGoogleUser(): any | null {
+    if (!isBrowser) return null;
+    const data = localStorage.getItem("google_user");
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  },
+
+  clearAuth(): void {
+    if (!isBrowser) return;
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("google_user");
   },
 };

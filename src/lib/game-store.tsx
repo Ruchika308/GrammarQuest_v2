@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { storage, type UserProfile, type MilestoneProgress } from "./storage";
+import { decodeJwt, type GoogleUser } from "./google-auth";
 
 export type AvatarId = "mia" | "leo" | "wizard" | "dragon";
 
@@ -25,6 +26,7 @@ export const MILESTONES = [
 export type MilestoneId = (typeof MILESTONES)[number]["id"];
 
 type State = {
+  user: GoogleUser | null;
   avatar: AvatarId | null;
   xp: number;
   completed: MilestoneId[];
@@ -40,6 +42,8 @@ type Ctx = State & {
   submitQuestion: (milestoneId: string, questionId: string, correct: boolean) => Promise<boolean>;
   reset: () => void;
   isLoading: boolean;
+  login: (token: string) => void;
+  logout: () => void;
 };
 
 const GameContext = createContext<Ctx | null>(null);
@@ -52,16 +56,40 @@ const DEFAULT_PROFILE = {
 };
 
 export function GameProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<GoogleUser | null>(null);
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [progress, setProgress] = useState<Record<string, MilestoneProgress>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   // Load from localStorage on mount (SSR safe)
   useEffect(() => {
-    setProfile(storage.getProfile());
-    setProgress(storage.getAllProgress());
+    const cachedUser = storage.getGoogleUser();
+    const token = storage.getAuthToken();
+    if (cachedUser && token) {
+      setUser(cachedUser);
+      setProfile(storage.getProfile());
+      setProgress(storage.getAllProgress());
+    }
     setIsLoading(false);
   }, []);
+
+  const login = (token: string) => {
+    const decoded = decodeJwt(token);
+    if (decoded) {
+      storage.saveAuth(token, decoded);
+      setUser(decoded);
+      // Synchronize/load profile
+      setProfile(storage.getProfile());
+      setProgress(storage.getAllProgress());
+    }
+  };
+
+  const logout = () => {
+    storage.clearAllProgress();
+    setUser(null);
+    setProfile(DEFAULT_PROFILE);
+    setProgress({});
+  };
 
   const setAvatar = (avatarId: AvatarId) => {
     const updated = { ...profile, avatar: avatarId };
@@ -76,39 +104,32 @@ export function GameProvider({ children }: { children: ReactNode }) {
   };
 
   const completeMilestone = (milestoneId: MilestoneId, badgeEmoji: string) => {
-    // 1. Get/Update milestone progress
     const mProgress = storage.getProgress(milestoneId);
     mProgress.completed = true;
     storage.saveProgress(mProgress);
 
-    // 2. Add Badge & reward completion XP (+50 XP)
     storage.addBadge(badgeEmoji);
     storage.addXP(50);
 
-    // 3. Sync React state
     setProfile(storage.getProfile());
     setProgress(storage.getAllProgress());
   };
 
   const isUnlocked = (id: MilestoneId) => {
     const idx = MILESTONES.findIndex((m) => m.id === id);
-    if (idx <= 0) return true; // First milestone is always unlocked
+    if (idx <= 0) return true;
     const prevMilestone = MILESTONES[idx - 1];
     const prevProgress = progress[prevMilestone.id];
-    // Unlocked only if the previous milestone has a mastery score of 80% or higher
     return prevProgress ? prevProgress.mastery >= 80 : false;
   };
 
   const submitQuestion = async (milestoneId: string, questionId: string, correct: boolean) => {
-    // Record question attempt, calculate new mastery
     storage.recordAttempt(milestoneId, questionId, correct);
     
-    // Add XP if correct (+10 XP)
     if (correct) {
       storage.addXP(10);
     }
 
-    // Refresh state
     setProfile(storage.getProfile());
     setProgress(storage.getAllProgress());
     
@@ -117,17 +138,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const reset = () => {
     storage.clearAllProgress();
-    setProfile(storage.getProfile());
-    setProgress(storage.getAllProgress());
+    setUser(null);
+    setProfile(DEFAULT_PROFILE);
+    setProgress({});
   };
 
-  // Completed milestones computed from progress completes
   const completed = MILESTONES.map((m) => m.id).filter(
     (id) => progress[id]?.completed,
   ) as MilestoneId[];
 
   const state: State = {
-    avatar: (profile.avatar as AvatarId) || null,
+    user,
+    avatar: user ? ((profile.avatar as AvatarId) || null) : null,
     xp: profile.total_xp,
     completed,
     badges: profile.badges,
@@ -145,6 +167,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         submitQuestion,
         reset,
         isLoading,
+        login,
+        logout,
       }}
     >
       {children}

@@ -25,7 +25,7 @@ export function playCorrectSound() {
     osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.16); // G5
     osc.frequency.setValueAtTime(1046.5, ctx.currentTime + 0.24); // C6
 
-    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.setValueAtTime(0.28, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
 
     osc.connect(gain);
@@ -53,7 +53,7 @@ export function playIncorrectSound() {
     osc.frequency.setValueAtTime(220, ctx.currentTime); // A3
     osc.frequency.linearRampToValueAtTime(110, ctx.currentTime + 0.25); // A2
 
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
 
     osc.connect(gain);
@@ -82,7 +82,7 @@ export function playCompleteSound() {
       osc.type = "sine";
       osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
 
-      gain.gain.setValueAtTime(0.08, ctx.currentTime + startTime);
+      gain.gain.setValueAtTime(0.28, ctx.currentTime + startTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
 
       osc.connect(gain);

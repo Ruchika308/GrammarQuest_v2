@@ -11,12 +11,13 @@ export const Route = createFileRoute("/map")({
 });
 
 function MapPage() {
-  const { avatar, xp, completed, badges, isLoading: isGameLoading } = useGame();
+  const { user, avatar, xp, completed, badges, isLoading: isGameLoading } = useGame();
 
   if (isGameLoading) {
     return <div className="flex min-h-screen items-center justify-center">Loading map...</div>;
   }
 
+  if (!user) return <Navigate to="/" />;
   if (!avatar) return <Navigate to="/avatar" />;
   const av = AVATARS.find((a) => a.id === avatar)!;
 
@@ -30,19 +31,27 @@ function MapPage() {
         {/* Top bar */}
         <div className="flex items-center justify-between">
           <Link
-            to="/avatar"
-            className="flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-md"
+            to="/"
+            className="flex items-center gap-1 rounded-full bg-white px-4 py-2 shadow-sm text-sm font-display font-bold text-muted-foreground hover:text-foreground hover:bg-slate-50 transition-all"
           >
-            <span
-              className={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br ${av.color} text-xl`}
-            >
-              {av.emoji}
-            </span>
-            <span className="font-display font-bold text-sm pr-2">
-              {av.name.split(" ")[1] ?? av.name}
-            </span>
+            ← Home
           </Link>
-          <XPBadge xp={xp} />
+          <div className="flex items-center gap-2">
+            <Link
+              to="/avatar"
+              className="flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm border border-slate-100"
+            >
+              <span
+                className={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br ${av.color} text-xl`}
+              >
+                {av.emoji}
+              </span>
+              <span className="font-display font-bold text-sm pr-2">
+                {av.name.split(" ")[1] ?? av.name}
+              </span>
+            </Link>
+            <XPBadge xp={xp} />
+          </div>
         </div>
 
         <h1 className="mt-8 text-center text-4xl text-foreground">

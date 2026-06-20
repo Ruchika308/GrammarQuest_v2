@@ -61,7 +61,15 @@ export const Route = createFileRoute("/lesson/$id")({
 function LessonPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { completeMilestone, xp, submitQuestion, completed, addXp } = useGame();
+  const { user, completeMilestone, xp, submitQuestion, completed, addXp, isLoading } = useGame();
+
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/" />;
+  }
 
   const milestone = milestonesData.find((m: any) => m.id === id);
 
@@ -82,6 +90,8 @@ function LessonPage() {
   const [gameOver, setGameOver] = useState(false);
   const [forceReplay, setForceReplay] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
+  const [sessionAnswers, setSessionAnswers] = useState<Record<string, { userAnswer: string; correct: boolean }>>({});
+  const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
 
   // Generate local session of questions
   useEffect(() => {
@@ -119,6 +129,8 @@ function LessonPage() {
   const badge = badgeEmojis[milestone.id] || "🏆 Champion";
 
   if (isLevelCompleted) {
+    const hasPlayedSession = Object.keys(sessionAnswers).length > 0;
+
     return (
       <main className="min-h-screen px-4 py-6 bg-gradient-to-br from-indigo-50 via-white to-pink-50">
         <div className="mx-auto flex max-w-xl flex-col gap-6">
@@ -139,9 +151,16 @@ function LessonPage() {
           <div className="rounded-3xl bg-white p-8 shadow-xl border border-indigo-50 text-center">
             <div className="text-6xl mb-4 animate-bounce">🏆</div>
             <h1 className="text-3xl font-display font-bold text-foreground">Quest Conquered!</h1>
-            <p className="text-muted-foreground mt-2">
-              You have completed this quest. Below are the correct answers for review.
-            </p>
+            
+            {hasPlayedSession ? (
+              <div className="mt-3 px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-800 font-display font-bold">
+                You answered {correctAnswersCount} out of {total} questions correctly! 🎉
+              </div>
+            ) : (
+              <p className="text-muted-foreground mt-2">
+                You have completed this quest. Below are the correct answers for review.
+              </p>
+            )}
 
             <div className="flex gap-4 justify-center mt-6">
               <button
@@ -158,6 +177,8 @@ function LessonPage() {
                   setGameOver(false);
                   setForceReplay(true);
                   setShowIntro(true);
+                  setSessionAnswers({});
+                  setCorrectAnswersCount(0);
                 }}
                 className="rounded-2xl border-2 border-primary/20 bg-white px-6 py-3 font-display font-bold text-primary hover:bg-primary/5 hover:-translate-y-0.5 transition-all cursor-pointer"
               >
@@ -172,6 +193,10 @@ function LessonPage() {
               Quest Questions & Answers
             </h2>
             {questions.map((q: any, i: number) => {
+              const answerInfo = sessionAnswers[q.id];
+              const isSentence = q.question_type === "sentence" || q.type === "sentence";
+              const isMatch = q.question_type === "match" || q.type === "match";
+
               return (
                 <div
                   key={q.id || i}
@@ -184,26 +209,71 @@ function LessonPage() {
                     <div className="font-semibold text-foreground">{q.prompt}</div>
                   </div>
 
-                  <div className="flex flex-col gap-2 mt-1">
-                    {[q.option_a, q.option_b, q.option_c, q.option_d]
-                      .filter(Boolean)
-                      .map((opt: string) => {
-                        const isCorrect = opt === q.correct_answer;
-                        return (
-                          <div
-                            key={opt}
-                            className={`rounded-xl border p-3 font-semibold text-sm transition-colors ${
-                              isCorrect
-                                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                : "border-border bg-white text-muted-foreground opacity-60"
-                            }`}
-                          >
-                            <span className="mr-2">{isCorrect ? "✓" : "○"}</span>
-                            {opt}
-                          </div>
-                        );
-                      })}
-                  </div>
+                  {isSentence ? (
+                    <div className="flex flex-col gap-2 mt-1">
+                      <div className="rounded-xl border border-emerald-500 bg-emerald-50 p-3 font-semibold text-sm text-emerald-700">
+                        <span className="font-bold block text-xs uppercase tracking-wider text-emerald-600 mb-1">Correct Sentence:</span>
+                        {Array.isArray(q.correct_answer) ? q.correct_answer.join(" ") : q.correct_answer}
+                      </div>
+                      {answerInfo && !answerInfo.correct && (
+                        <div className="rounded-xl border border-rose-500 bg-rose-50 p-3 font-semibold text-sm text-rose-700">
+                          <span className="font-bold block text-xs uppercase tracking-wider text-rose-600 mb-1">Your Sentence:</span>
+                          {answerInfo.userAnswer}
+                        </div>
+                      )}
+                    </div>
+                  ) : isMatch ? (
+                    <div className="flex flex-col gap-2 mt-1">
+                      <div className="rounded-xl border border-emerald-500 bg-emerald-50 p-3 font-semibold text-sm text-emerald-700">
+                        <span className="font-bold block text-xs uppercase tracking-wider text-emerald-600 mb-1">Word Pairs:</span>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {q.pairs?.map((p: any, idx: number) => (
+                            <div key={idx} className="bg-white/60 p-1.5 rounded border border-emerald-200 text-center">
+                              {p.left} ➔ {p.right}
+                            </div>
+                          )) || (
+                            <div className="text-muted-foreground col-span-2 text-center py-1">Matched successfully</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 mt-1">
+                      {[q.option_a, q.option_b, q.option_c, q.option_d]
+                        .filter(Boolean)
+                        .map((opt: string) => {
+                          const isCorrect = opt === q.correct_answer;
+                          const isUserAnswer = answerInfo?.userAnswer === opt;
+                          
+                          let borderCls = "border-border bg-white text-muted-foreground opacity-60";
+                          let prefix = "○";
+                          
+                          if (isCorrect) {
+                            borderCls = "border-emerald-500 bg-emerald-50 text-emerald-700 font-bold opacity-100";
+                            prefix = "✓";
+                          } else if (isUserAnswer && !isCorrect) {
+                            borderCls = "border-rose-500 bg-rose-50 text-rose-700 font-bold opacity-100 animate-shake";
+                            prefix = "✗";
+                          }
+
+                          return (
+                            <div
+                              key={opt}
+                              className={`rounded-xl border p-3 text-sm transition-colors ${borderCls}`}
+                            >
+                              <span className="mr-2 font-display">{prefix}</span>
+                              {opt}
+                              {isUserAnswer && !isCorrect && (
+                                <span className="ml-2 text-xs font-display bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded-md">Your Answer</span>
+                              )}
+                              {isUserAnswer && isCorrect && (
+                                <span className="ml-2 text-xs font-display bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded-md font-bold">Your Answer</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -213,9 +283,16 @@ function LessonPage() {
     );
   }
 
-  async function handleAnswer(correct: boolean) {
+  async function handleAnswer(correct: boolean, userAnswer: string) {
     if (question) {
       submitQuestion(milestone!.id, question.id, correct).catch(console.error);
+      setSessionAnswers((prev) => ({
+        ...prev,
+        [question.id]: { userAnswer, correct },
+      }));
+      if (correct) {
+        setCorrectAnswersCount((c) => c + 1);
+      }
     }
 
     if (correct) {

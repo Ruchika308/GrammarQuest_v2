@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, Navigate } from "@tanstack/react-router";
 import { AvatarCard } from "@/components/AvatarCard";
 import { AVATARS, useGame } from "@/lib/game-store";
 
@@ -8,8 +8,16 @@ export const Route = createFileRoute("/avatar")({
 });
 
 function AvatarPage() {
-  const { avatar, setAvatar } = useGame();
+  const { user, avatar, setAvatar, isLoading } = useGame();
   const navigate = useNavigate();
+
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/" />;
+  }
 
   return (
     <main className="min-h-screen px-6 py-10">
