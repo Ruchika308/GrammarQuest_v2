@@ -157,8 +157,8 @@ function LessonPage() {
 
         if (fallbackQuestions.length > 0 && !cancelled) {
           setQuestions(fallbackQuestions);
-          setSessionAnswers({});
-          setCorrectAnswersCount(0);
+          setSessionAnswers((prev) => Object.keys(prev).length > 0 ? prev : {});
+          setCorrectAnswersCount((prev) => prev > 0 ? prev : 0);
           setIsQuestionsLoading(false);
           return;
         }
@@ -191,8 +191,19 @@ function LessonPage() {
             });
             
             console.log("[GQ DEBUG] Setting sessionAnswers:", answersMap, "correctAnswersCount:", correctCount);
-            setSessionAnswers(answersMap);
-            setCorrectAnswersCount(correctCount);
+            setSessionAnswers((prev) => {
+              const hasDetailedAnswers = Object.values(prev).some((ans) => ans.userAnswer !== "");
+              if (hasDetailedAnswers) return prev;
+              
+              const attemptsHaveAnswers = Object.values(answersMap).some((ans) => ans.userAnswer !== "");
+              if (attemptsHaveAnswers) return answersMap;
+
+              return prev;
+            });
+            setCorrectAnswersCount((prev) => {
+              if (prev > 0) return prev;
+              return correctCount;
+            });
             setIsQuestionsLoading(false);
             return;
           }

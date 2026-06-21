@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie, setCookie } from "@tanstack/react-start/server";
 import type { GoogleUser } from "../google-auth";
+import questionsData from "../data/questions.json";
 
 async function getDb() {
   const [{ connectDB }, models] = await Promise.all([
@@ -244,6 +245,7 @@ export const submitQuestionAttempt = createServerFn({ method: "POST" })
 
     await QuestionAttempt.create({
       user_id: userId,
+      milestone_id: ctx.data.milestoneId,
       question_id: ctx.data.questionId,
       correct: ctx.data.correct,
       selected_answer: ctx.data.userAnswer || null,
@@ -366,7 +368,7 @@ export const getUserBadges = createServerFn({ method: "GET" }).handler(async () 
 export const getMilestoneAttempts = createServerFn({ method: "GET" })
   .validator((milestoneId: string) => milestoneId)
   .handler(async (ctx) => {
-    const { connectDB, QuestionAttempt, Question } = await getDb();
+    const { connectDB, QuestionAttempt } = await getDb();
     await connectDB();
 
     const userId = getCookie("guest_user_id");
@@ -374,16 +376,29 @@ export const getMilestoneAttempts = createServerFn({ method: "GET" })
       return [];
     }
 
-    const questions = await Question.find({ milestone_id: ctx.data }).select("id").lean();
-    const questionIds = questions.map((q: any) => q.id);
-
-    const attempts = await QuestionAttempt.find({
+    // 1. Try finding attempts that have the milestone_id field set (new attempts)
+    let attempts = await QuestionAttempt.find({
       user_id: userId,
-      question_id: { $in: questionIds },
+      milestone_id: ctx.data,
     })
       .sort({ timestamp: -1 })
       .limit(5)
       .lean();
+
+    // 2. Fallback: if no attempts match milestone_id, search by question IDs (for older runs)
+    if (attempts.length === 0) {
+      const questionIds = (questionsData as any[])
+        .filter((q) => q.milestone_id === ctx.data)
+        .map((q) => q.id);
+
+      attempts = await QuestionAttempt.find({
+        user_id: userId,
+        question_id: { $in: questionIds },
+      })
+        .sort({ timestamp: -1 })
+        .limit(5)
+        .lean();
+    }
 
     return toPlain(attempts.reverse());
   });

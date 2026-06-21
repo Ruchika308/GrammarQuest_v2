@@ -65,6 +65,7 @@ export const Question = mongoose.models.Question || mongoose.model("Question", Q
 // Question Attempt Schema
 const QuestionAttemptSchema = new Schema({
   user_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  milestone_id: { type: String },
   question_id: { type: String, required: true },
   correct: { type: Boolean, required: true },
   selected_answer: { type: String, default: null },
