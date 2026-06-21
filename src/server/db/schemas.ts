@@ -67,6 +67,7 @@ const QuestionAttemptSchema = new Schema({
   user_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
   question_id: { type: String, required: true },
   correct: { type: Boolean, required: true },
+  selected_answer: { type: String, default: null },
   timestamp: { type: Date, default: Date.now },
 });
 

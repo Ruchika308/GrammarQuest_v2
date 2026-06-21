@@ -232,7 +232,7 @@ export const getPlayerState = createServerFn({ method: "GET" }).handler(async ()
 });
 
 export const submitQuestionAttempt = createServerFn({ method: "POST" })
-  .validator((data: { milestoneId: string; questionId: string; correct: boolean }) => data)
+  .validator((data: { milestoneId: string; questionId: string; correct: boolean; userAnswer?: string }) => data)
   .handler(async (ctx) => {
     const { connectDB, User, QuestionAttempt, PlayerProgress } = await getDb();
     await connectDB();
@@ -246,6 +246,7 @@ export const submitQuestionAttempt = createServerFn({ method: "POST" })
       user_id: userId,
       question_id: ctx.data.questionId,
       correct: ctx.data.correct,
+      selected_answer: ctx.data.userAnswer || null,
     });
 
     const progress = await PlayerProgress.findOneAndUpdate(

@@ -9,6 +9,7 @@ import { trackEvent } from "@/lib/analytics";
 import { playCorrectSound, playIncorrectSound, playCompleteSound } from "@/lib/sounds";
 import { generateSessionQuestions } from "@/lib/session";
 import milestonesData from "@/lib/data/milestones.json";
+import questionsData from "@/lib/data/questions.json";
 
 const milestoneIntroContent: Record<
   string,
@@ -72,14 +73,43 @@ function LessonPage() {
   const [sessionAnswers, setSessionAnswers] = useState<Record<string, { userAnswer: string; correct: boolean }>>({});
   const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
 
-  // Generate local session of questions
+  // Generate local session of questions or load completed ones for review
   useEffect(() => {
-    if (milestone && (isUnlocked() || forceReplay)) {
-      const generated = generateSessionQuestions(id, completed);
-      setQuestions(generated);
-      setIsQuestionsLoading(false);
+    if (milestone) {
+      const isLevelCompleted = completed.includes(milestone.id as any) && !forceReplay;
+      
+      if (isLevelCompleted) {
+        // In review mode: try to load the completed question IDs
+        let loadedQuestions: any[] = [];
+        if (typeof window !== "undefined") {
+          try {
+            const storedIds = localStorage.getItem(`gq_completed_questions_${milestone.id}`);
+            if (storedIds) {
+              const ids: string[] = JSON.parse(storedIds);
+              // Find the corresponding questions in questionsData
+              loadedQuestions = ids
+                .map((id) => (questionsData as any[]).find((q) => q.id === id))
+                .filter(Boolean);
+            }
+          } catch (e) {
+            console.error("Failed to load completed milestone questions:", e);
+          }
+        }
+        
+        if (loadedQuestions.length > 0) {
+          setQuestions(loadedQuestions);
+          setIsQuestionsLoading(false);
+          return;
+        }
+      }
+
+      if (isUnlocked() || forceReplay) {
+        const generated = generateSessionQuestions(id, completed);
+        setQuestions(generated);
+        setIsQuestionsLoading(false);
+      }
     }
-  }, [id, forceReplay]);
+  }, [id, forceReplay, completed]);
 
   const total = questions.length;
   const question = questions[idx];
@@ -278,7 +308,7 @@ function LessonPage() {
 
   async function handleAnswer(correct: boolean, userAnswer: string) {
     if (question) {
-      await submitQuestion(milestone!.id, question.id, correct);
+      await submitQuestion(milestone!.id, question.id, correct, userAnswer);
       setSessionAnswers((prev) => ({
         ...prev,
         [question.id]: { userAnswer, correct },
@@ -308,6 +338,16 @@ function LessonPage() {
       const isPerfect = (hearts - (correct ? 0 : 1)) === 3;
       if (isPerfect) {
         completeXp += 10;
+      }
+
+      // Save the exact questions played in this completed milestone session!
+      if (typeof window !== "undefined") {
+        try {
+          const questionIds = questions.map((q) => q.id);
+          localStorage.setItem(`gq_completed_questions_${milestone!.id}`, JSON.stringify(questionIds));
+        } catch (e) {
+          console.error("Failed to save completed milestone questions:", e);
+        }
       }
 
       setEarned((e) => e + 50 + (isPerfect ? 10 : 0));

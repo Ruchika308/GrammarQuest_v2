@@ -4,6 +4,8 @@ const MONGODB_URI =
   process.env.MONGODB_URI ||
   "mongodb+srv://pmproductportfolio_db_user:pOqOoDMHKPtcDEXc@cluster0.j7c056d.mongodb.net/grammarquest?retryWrites=true&w=majority";
 
+
+
 if (!MONGODB_URI) {
   throw new Error("Please define the MONGODB_URI environment variable");
 }

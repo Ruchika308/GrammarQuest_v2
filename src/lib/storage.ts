@@ -30,6 +30,7 @@ export interface PlayerAnswer {
   question_id: string;
   milestone_id: string;
   correct: boolean;
+  selected_answer?: string | null;
   timestamp: string;
 }
 
@@ -116,7 +117,7 @@ export const storage = {
     localStorage.setItem("gq_progress", JSON.stringify(progressMap));
   },
 
-  recordAttempt(milestoneId: string, questionId: string, correct: boolean): MilestoneProgress {
+  recordAttempt(milestoneId: string, questionId: string, correct: boolean, userAnswer?: string): MilestoneProgress {
     // 1. Get current milestone progress
     const progress = this.getProgress(milestoneId);
     
@@ -143,6 +144,7 @@ export const storage = {
       question_id: questionId,
       milestone_id: milestoneId,
       correct,
+      selected_answer: userAnswer || null,
       timestamp: new Date().toISOString(),
     });
     if (isBrowser) {
