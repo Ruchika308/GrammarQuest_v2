@@ -111,6 +111,11 @@ export const storage = {
     localStorage.setItem("gq_progress", JSON.stringify(progressMap));
   },
 
+  replaceAllProgress(progressMap: Record<string, MilestoneProgress>): void {
+    if (!isBrowser) return;
+    localStorage.setItem("gq_progress", JSON.stringify(progressMap));
+  },
+
   recordAttempt(milestoneId: string, questionId: string, correct: boolean): MilestoneProgress {
     // 1. Get current milestone progress
     const progress = this.getProgress(milestoneId);

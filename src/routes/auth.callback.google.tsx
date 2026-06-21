@@ -13,22 +13,34 @@ function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     // Google OAuth implicit flow returns parameter in the hash fragment
     const hash = window.location.hash;
     const params = new URLSearchParams(hash.substring(1)); // strip leading '#'
     const idToken = params.get("id_token");
 
-    if (idToken) {
-      try {
-        login(idToken);
-      } catch (err) {
-        console.error("Login processing error:", err);
-        setError("Could not complete login. Please try again.");
+    async function completeLogin() {
+      if (idToken) {
+        try {
+          await login(idToken);
+        } catch (err) {
+          console.error("Login processing error:", err);
+          if (!cancelled) {
+            setError("Could not complete login. Please try again.");
+          }
+        }
+      } else if (!cancelled) {
+        setError("No token found in response.");
       }
-    } else {
-      setError("No token found in response.");
     }
-  }, []);
+
+    void completeLogin();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [login]);
 
   // Redirect user to right route once auth context synchronizes
   useEffect(() => {
@@ -39,7 +51,7 @@ function AuthCallbackPage() {
         navigate({ to: "/avatar" });
       }
     }
-  }, [isLoading, user, avatar]);
+  }, [avatar, isLoading, navigate, user]);
 
   if (error) {
     return (

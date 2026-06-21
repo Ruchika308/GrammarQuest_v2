@@ -74,14 +74,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
     nextCompleted: MilestoneId[],
   ) => {
     storage.saveProfile(nextProfile);
-    Object.values(nextProgress).forEach((entry) => storage.saveProgress(entry));
+    storage.replaceAllProgress(nextProgress);
+    const completedFromProgress = Object.values(nextProgress)
+      .filter((entry) => entry.completed)
+      .map((entry) => entry.milestone_id as MilestoneId);
+    const mergedCompleted = Array.from(
+      new Set([...nextCompleted, ...completedFromProgress]),
+    ) as MilestoneId[];
     setProfile(nextProfile);
     setProgress(nextProgress);
-    setCompletedMilestones(nextCompleted);
+    setCompletedMilestones(mergedCompleted);
   };
 
-  const hydrateFromServer = async () => {
-    await getGuestUser();
+  const hydrateFromServer = async (googleUser?: GoogleUser | null) => {
+    if (googleUser) {
+      await upsertGoogleUser({ data: googleUser });
+    } else {
+      await getGuestUser();
+    }
     const serverState = await getPlayerState();
     if (serverState.profile) {
       syncLocalState(
@@ -107,7 +117,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setProfile(storage.getProfile());
         setProgress(storage.getAllProgress());
 
-        await hydrateFromServer();
+        await hydrateFromServer(cachedUser);
         if (cancelled) {
           return;
         }
@@ -132,10 +142,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (decoded) {
       setIsLoading(true);
       try {
-        await upsertGoogleUser({ data: decoded });
         storage.saveAuth(token, decoded);
         setUser(decoded);
-        await hydrateFromServer();
+        await hydrateFromServer(decoded);
       } catch (error) {
         console.error("Failed to restore server state after login:", error);
         storage.saveAuth(token, decoded);
