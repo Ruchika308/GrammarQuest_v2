@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MapRouteImport } from './routes/map'
+import { Route as DbTestRouteImport } from './routes/db-test'
 import { Route as AvatarRouteImport } from './routes/avatar'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LessonIdRouteImport } from './routes/lesson.$id'
@@ -18,6 +19,11 @@ import { Route as AuthCallbackGoogleRouteImport } from './routes/auth.callback.g
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DbTestRoute = DbTestRouteImport.update({
+  id: '/db-test',
+  path: '/db-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AvatarRoute = AvatarRouteImport.update({
@@ -44,6 +50,7 @@ const AuthCallbackGoogleRoute = AuthCallbackGoogleRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/avatar': typeof AvatarRoute
+  '/db-test': typeof DbTestRoute
   '/map': typeof MapRoute
   '/lesson/$id': typeof LessonIdRoute
   '/auth/callback/google': typeof AuthCallbackGoogleRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/avatar': typeof AvatarRoute
+  '/db-test': typeof DbTestRoute
   '/map': typeof MapRoute
   '/lesson/$id': typeof LessonIdRoute
   '/auth/callback/google': typeof AuthCallbackGoogleRoute
@@ -59,19 +67,33 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/avatar': typeof AvatarRoute
+  '/db-test': typeof DbTestRoute
   '/map': typeof MapRoute
   '/lesson/$id': typeof LessonIdRoute
   '/auth/callback/google': typeof AuthCallbackGoogleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/avatar' | '/map' | '/lesson/$id' | '/auth/callback/google'
+  fullPaths:
+    | '/'
+    | '/avatar'
+    | '/db-test'
+    | '/map'
+    | '/lesson/$id'
+    | '/auth/callback/google'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/avatar' | '/map' | '/lesson/$id' | '/auth/callback/google'
+  to:
+    | '/'
+    | '/avatar'
+    | '/db-test'
+    | '/map'
+    | '/lesson/$id'
+    | '/auth/callback/google'
   id:
     | '__root__'
     | '/'
     | '/avatar'
+    | '/db-test'
     | '/map'
     | '/lesson/$id'
     | '/auth/callback/google'
@@ -80,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AvatarRoute: typeof AvatarRoute
+  DbTestRoute: typeof DbTestRoute
   MapRoute: typeof MapRoute
   LessonIdRoute: typeof LessonIdRoute
   AuthCallbackGoogleRoute: typeof AuthCallbackGoogleRoute
@@ -92,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/map'
       preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/db-test': {
+      id: '/db-test'
+      path: '/db-test'
+      fullPath: '/db-test'
+      preLoaderRoute: typeof DbTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/avatar': {
@@ -128,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AvatarRoute: AvatarRoute,
+  DbTestRoute: DbTestRoute,
   MapRoute: MapRoute,
   LessonIdRoute: LessonIdRoute,
   AuthCallbackGoogleRoute: AuthCallbackGoogleRoute,
