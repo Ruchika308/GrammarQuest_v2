@@ -81,27 +81,77 @@ export const upsertGoogleUser = createServerFn({ method: "POST" })
   .handler(async (ctx) => {
     await connectDB();
     const googleUser = ctx.data;
+    const currentUserId = getCookie("guest_user_id");
+    const currentUser = currentUserId ? await User.findById(currentUserId).lean() : null;
+    const googleAccount = await User.findOne({ google_sub: googleUser.sub }).lean();
 
-    const updated = await User.findOneAndUpdate(
-      { google_sub: googleUser.sub },
-      {
-        $set: {
-          name: googleUser.name,
-          email: googleUser.email,
-          google_sub: googleUser.sub,
-          picture: googleUser.picture,
+    let updated: { _id: { toString(): string } } | null = null;
+
+    if (googleAccount) {
+      if (currentUser && currentUser._id.toString() !== googleAccount._id.toString()) {
+        const sourceId = currentUser._id.toString();
+        const targetId = googleAccount._id.toString();
+
+        await Promise.all([
+          QuestionAttempt.updateMany({ user_id: sourceId }, { $set: { user_id: targetId } }),
+          PlayerProgress.updateMany({ user_id: sourceId }, { $set: { user_id: targetId } }),
+          UserReward.updateMany(
+            { user_id: sourceId, reward_type: "badge" },
+            { $set: { user_id: targetId } },
+          ),
+        ]);
+      }
+
+      const mergedCompleted = Array.from(
+        new Set([
+          ...(googleAccount.completed_milestones ?? []),
+          ...(currentUser?.completed_milestones ?? []),
+        ]),
+      );
+
+      const mergedTotalXp = Math.max(googleAccount.total_xp ?? 0, currentUser?.total_xp ?? 0);
+
+      const mergedAvatar = googleAccount.avatar ?? currentUser?.avatar ?? null;
+
+      updated = await User.findByIdAndUpdate(
+        googleAccount._id,
+        {
+          $set: {
+            name: googleUser.name,
+            email: googleUser.email,
+            google_sub: googleUser.sub,
+            picture: googleUser.picture,
+            avatar: mergedAvatar,
+            total_xp: mergedTotalXp,
+            completed_milestones: mergedCompleted,
+          },
         },
-        $setOnInsert: {
-          avatar: null,
-          total_xp: 0,
-          completed_milestones: [],
+        { new: true },
+      ).lean();
+    } else if (currentUser && !currentUser.google_sub) {
+      updated = await User.findByIdAndUpdate(
+        currentUser._id,
+        {
+          $set: {
+            name: googleUser.name,
+            email: googleUser.email,
+            google_sub: googleUser.sub,
+            picture: googleUser.picture,
+          },
         },
-      },
-      {
-        upsert: true,
-        new: true,
-      },
-    ).lean();
+        { new: true },
+      ).lean();
+    } else {
+      updated = await User.create({
+        name: googleUser.name,
+        email: googleUser.email,
+        google_sub: googleUser.sub,
+        picture: googleUser.picture,
+        avatar: null,
+        total_xp: 0,
+        completed_milestones: [],
+      });
+    }
 
     const userId = updated?._id?.toString();
     if (userId) {
