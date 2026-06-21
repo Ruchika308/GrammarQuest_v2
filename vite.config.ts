@@ -14,5 +14,15 @@ export default defineConfig({
   },
   nitro: {
     preset: "vercel",
+    externals: {
+      external: ["mongoose", "mongodb"],
+    },
+  } as any,
+  vite: {
+    ssr: {
+      external: ["mongoose", "mongodb"],
+    },
   },
 });
+
+

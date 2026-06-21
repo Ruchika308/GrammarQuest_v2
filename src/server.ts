@@ -1,4 +1,12 @@
+import { createRequire } from "module";
+
+// Polyfill require globally in Node.js ESM environment for serverless runtimes
+if (typeof (globalThis as any).require === "undefined") {
+  (globalThis as any).require = createRequire(import.meta.url);
+}
+
 import "./lib/error-capture";
+
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
