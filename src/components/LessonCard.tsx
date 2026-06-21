@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { resolveAssetEmoji, getTwemojiUrl } from "@/lib/asset-registry";
 
+const CORRECT_FEEDBACK_MS = 1400;
+
 const DEFAULT_EMOJIS = ["😄", "🧠", "🎒", "🧙", "🌟", "🚀", "🎨", "🦖", "🦁", "🎈", "🦄", "🎯", "💡"];
 
 const CORRECT_EFFECTS = [
@@ -60,7 +62,7 @@ export function LessonCard({ question, onAnswer }: Props) {
       setSelected(null);
       setChecked(false);
       setActiveEffect(null);
-    }, 900);
+    }, CORRECT_FEEDBACK_MS);
   }
 
   const resolvedEmoji = question.image_url
@@ -130,8 +132,8 @@ export function LessonCard({ question, onAnswer }: Props) {
                 >
                   {opt}
                   {activeEffect && activeEffect.option === opt && (
-                    <div className={`absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-md font-display font-bold text-xs pointer-events-none animate-float-fade-up ${activeEffect.color}`}>
-                      <span className="text-sm">{activeEffect.emoji}</span>
+                    <div className={`absolute -top-14 left-1/2 -translate-x-1/2 flex items-center gap-2.5 px-5 py-2.5 rounded-full border shadow-md font-display font-bold text-sm pointer-events-none animate-float-fade-up ${activeEffect.color}`}>
+                      <span className="text-3xl leading-none">{activeEffect.emoji}</span>
                       <span>{activeEffect.text}</span>
                     </div>
                   )}
@@ -180,7 +182,7 @@ function MatchQuestion({
           setChecked(false);
           setMatches({});
           setActiveEffect(null);
-        }, 900);
+        }, CORRECT_FEEDBACK_MS);
       }
     } else {
       setWrong(r);
@@ -238,8 +240,8 @@ function MatchQuestion({
         </div>
 
         {activeEffect && (
-          <div className={`absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-md font-display font-bold text-xs pointer-events-none animate-float-fade-up ${activeEffect.color}`}>
-            <span className="text-sm">{activeEffect.emoji}</span>
+          <div className={`absolute -top-14 left-1/2 -translate-x-1/2 flex items-center gap-2.5 px-5 py-2.5 rounded-full border shadow-md font-display font-bold text-sm pointer-events-none animate-float-fade-up ${activeEffect.color}`}>
+            <span className="text-3xl leading-none">{activeEffect.emoji}</span>
             <span>{activeEffect.text}</span>
           </div>
         )}
@@ -284,7 +286,7 @@ function SentenceQuestion({
       setChecked(false);
       setPicked([]);
       setActiveEffect(null);
-    }, 900);
+    }, CORRECT_FEEDBACK_MS);
   }
 
   return (
@@ -331,10 +333,10 @@ function SentenceQuestion({
       >
         Check
         {activeEffect && (
-          <div className={`absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-md font-display font-bold text-xs pointer-events-none animate-float-fade-up ${activeEffect.color}`}>
-            <span className="text-sm">{activeEffect.emoji}</span>
-            <span>{activeEffect.text}</span>
-          </div>
+        <div className={`absolute -top-14 left-1/2 -translate-x-1/2 flex items-center gap-2.5 px-5 py-2.5 rounded-full border shadow-md font-display font-bold text-sm pointer-events-none animate-float-fade-up ${activeEffect.color}`}>
+          <span className="text-3xl leading-none">{activeEffect.emoji}</span>
+          <span>{activeEffect.text}</span>
+        </div>
         )}
       </button>
     </div>

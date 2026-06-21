@@ -3,7 +3,7 @@ const isBrowser = typeof window !== "undefined";
 
 export interface UserProfile {
   name: string;
-  avatar: string;
+  avatar: string | null;
   total_xp: number;
   badges: string[];
 }
@@ -35,7 +35,7 @@ export interface PlayerAnswer {
 
 const DEFAULT_PROFILE: UserProfile = {
   name: "Guest Explorer",
-  avatar: "mia",
+  avatar: null,
   total_xp: 0,
   badges: [],
 };

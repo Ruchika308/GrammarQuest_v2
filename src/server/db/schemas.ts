@@ -5,13 +5,19 @@ const Schema = mongoose.Schema;
 // User Schema
 const UserSchema = new Schema({
   name: { type: String, required: true },
-  avatar: { type: String, required: true },
+  email: { type: String, index: true, sparse: true },
+  google_sub: { type: String, index: true, sparse: true },
+  picture: { type: String },
+  avatar: { type: String, default: null },
   total_xp: { type: Number, default: 0 },
   completed_milestones: [{ type: String }],
   created_at: { type: Date, default: Date.now },
 });
 
-export const User = mongoose.models.User || mongoose.model("User", UserSchema);
+if (mongoose.models.User) {
+  delete mongoose.models.User;
+}
+export const User = mongoose.model("User", UserSchema);
 
 // Learning Path Schema
 const LearningPathSchema = new Schema({

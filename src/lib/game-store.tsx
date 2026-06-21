@@ -1,6 +1,12 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { storage, type UserProfile, type MilestoneProgress } from "./storage";
 import { decodeJwt, type GoogleUser } from "./google-auth";
+import {
+  completeMilestone as completeMilestoneOnServer,
+  getPlayerState,
+  submitQuestionAttempt,
+} from "./api/game.server";
+import { getGuestUser, updateAvatar, upsertGoogleUser } from "./api/game.server";
 
 export type AvatarId = "mia" | "leo" | "wizard" | "dragon";
 
@@ -35,14 +41,14 @@ type State = {
 };
 
 type Ctx = State & {
-  setAvatar: (a: AvatarId) => void;
+  setAvatar: (a: AvatarId) => Promise<void>;
   addXp: (n: number) => void;
-  completeMilestone: (id: MilestoneId, badge: string) => void;
+  completeMilestone: (id: MilestoneId, badge: string, bonusXp?: number) => Promise<void>;
   isUnlocked: (id: MilestoneId) => boolean;
   submitQuestion: (milestoneId: string, questionId: string, correct: boolean) => Promise<boolean>;
   reset: () => void;
   isLoading: boolean;
-  login: (token: string) => void;
+  login: (token: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -50,7 +56,7 @@ const GameContext = createContext<Ctx | null>(null);
 
 const DEFAULT_PROFILE = {
   name: "Guest Explorer",
-  avatar: "mia",
+  avatar: null,
   total_xp: 0,
   badges: [],
 };
@@ -59,28 +65,89 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [progress, setProgress] = useState<Record<string, MilestoneProgress>>({});
+  const [completedMilestones, setCompletedMilestones] = useState<MilestoneId[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const syncLocalState = (
+    nextProfile: UserProfile,
+    nextProgress: Record<string, MilestoneProgress>,
+    nextCompleted: MilestoneId[],
+  ) => {
+    storage.saveProfile(nextProfile);
+    Object.values(nextProgress).forEach((entry) => storage.saveProgress(entry));
+    setProfile(nextProfile);
+    setProgress(nextProgress);
+    setCompletedMilestones(nextCompleted);
+  };
+
+  const hydrateFromServer = async () => {
+    await getGuestUser();
+    const serverState = await getPlayerState();
+    if (serverState.profile) {
+      syncLocalState(
+        serverState.profile,
+        serverState.progress,
+        serverState.completed as MilestoneId[],
+      );
+    }
+  };
 
   // Load from localStorage on mount (SSR safe)
   useEffect(() => {
-    const cachedUser = storage.getGoogleUser();
-    const token = storage.getAuthToken();
-    if (cachedUser && token) {
-      setUser(cachedUser);
-      setProfile(storage.getProfile());
-      setProgress(storage.getAllProgress());
+    let cancelled = false;
+
+    async function bootstrap() {
+      try {
+        const cachedUser = storage.getGoogleUser();
+        const token = storage.getAuthToken();
+        if (cachedUser && token) {
+          setUser(cachedUser);
+        }
+
+        setProfile(storage.getProfile());
+        setProgress(storage.getAllProgress());
+
+        await hydrateFromServer();
+        if (cancelled) {
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to bootstrap game state:", error);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
     }
-    setIsLoading(false);
+
+    bootstrap();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const login = (token: string) => {
+  const login = async (token: string) => {
     const decoded = decodeJwt(token);
     if (decoded) {
-      storage.saveAuth(token, decoded);
-      setUser(decoded);
-      // Synchronize/load profile
-      setProfile(storage.getProfile());
-      setProgress(storage.getAllProgress());
+      setIsLoading(true);
+      try {
+        await upsertGoogleUser({ data: decoded });
+        storage.saveAuth(token, decoded);
+        setUser(decoded);
+        await hydrateFromServer();
+      } catch (error) {
+        console.error("Failed to restore server state after login:", error);
+        storage.saveAuth(token, decoded);
+        setUser(decoded);
+        setProfile(storage.getProfile());
+        setProgress(storage.getAllProgress());
+        setCompletedMilestones(
+          MILESTONES.map((m) => m.id).filter((id) => storage.getProgress(id).completed) as MilestoneId[],
+        );
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -89,9 +156,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setProfile(DEFAULT_PROFILE);
     setProgress({});
+    setCompletedMilestones([]);
   };
 
-  const setAvatar = (avatarId: AvatarId) => {
+  const setAvatar = async (avatarId: AvatarId) => {
+    try {
+      await updateAvatar({ data: avatarId });
+    } catch (error) {
+      console.error("Failed to persist avatar:", error);
+    }
     const updated = { ...profile, avatar: avatarId };
     storage.saveProfile(updated);
     setProfile(updated);
@@ -103,36 +176,84 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setProfile(updated);
   };
 
-  const completeMilestone = (milestoneId: MilestoneId, badgeEmoji: string) => {
+  const completeMilestone = async (
+    milestoneId: MilestoneId,
+    badgeEmoji: string,
+    bonusXp = 0,
+  ) => {
+    let totalXp = storage.getProfile().total_xp + 50 + bonusXp;
+    let badgeToSave = badgeEmoji;
+
+    try {
+      const result = await completeMilestoneOnServer({ data: { milestoneId, bonusXp } });
+      if (result?.success) {
+        totalXp = result.totalXp;
+        if (result.badgeEarned) {
+          badgeToSave = result.badgeEarned;
+        }
+      }
+    } catch (error) {
+      console.error("Failed to persist milestone completion:", error);
+    }
+
     const mProgress = storage.getProgress(milestoneId);
     mProgress.completed = true;
     storage.saveProgress(mProgress);
 
-    storage.addBadge(badgeEmoji);
-    storage.addXP(50);
+    const currentProfile = storage.getProfile();
+    const updatedProfile = {
+      ...currentProfile,
+      total_xp: totalXp,
+      badges: currentProfile.badges.includes(badgeToSave)
+        ? currentProfile.badges
+        : [...currentProfile.badges, badgeToSave],
+    };
+    storage.saveProfile(updatedProfile);
 
-    setProfile(storage.getProfile());
+    setProfile(updatedProfile);
     setProgress(storage.getAllProgress());
+    setCompletedMilestones((current) =>
+      current.includes(milestoneId) ? current : [...current, milestoneId],
+    );
   };
 
   const isUnlocked = (id: MilestoneId) => {
     const idx = MILESTONES.findIndex((m) => m.id === id);
     if (idx <= 0) return true;
     const prevMilestone = MILESTONES[idx - 1];
-    const prevProgress = progress[prevMilestone.id];
-    return prevProgress ? prevProgress.mastery >= 80 : false;
+    return completedMilestones.includes(prevMilestone.id);
   };
 
   const submitQuestion = async (milestoneId: string, questionId: string, correct: boolean) => {
-    storage.recordAttempt(milestoneId, questionId, correct);
-    
-    if (correct) {
-      storage.addXP(10);
+    try {
+      const result = await submitQuestionAttempt({
+        data: { milestoneId, questionId, correct },
+      });
+      if (result?.progress) {
+        storage.saveProgress(result.progress);
+      } else {
+        storage.recordAttempt(milestoneId, questionId, correct);
+      }
+
+      if (typeof result?.totalXp === "number") {
+        const updatedProfile = { ...storage.getProfile(), total_xp: result.totalXp };
+        storage.saveProfile(updatedProfile);
+        setProfile(updatedProfile);
+      } else if (correct) {
+        storage.addXP(10);
+        setProfile(storage.getProfile());
+      }
+    } catch (error) {
+      console.error("Failed to persist question attempt:", error);
+      storage.recordAttempt(milestoneId, questionId, correct);
+      if (correct) {
+        storage.addXP(10);
+      }
+      setProfile(storage.getProfile());
     }
 
-    setProfile(storage.getProfile());
     setProgress(storage.getAllProgress());
-    
+
     return correct;
   };
 
@@ -141,17 +262,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setProfile(DEFAULT_PROFILE);
     setProgress({});
+    setCompletedMilestones([]);
   };
-
-  const completed = MILESTONES.map((m) => m.id).filter(
-    (id) => progress[id]?.completed,
-  ) as MilestoneId[];
 
   const state: State = {
     user,
     avatar: user ? ((profile.avatar as AvatarId) || null) : null,
     xp: profile.total_xp,
-    completed,
+    completed: completedMilestones,
     badges: profile.badges,
     progress,
   };

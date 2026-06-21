@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie } from "@tanstack/react-start/server";
+import { getCookie, setCookie } from "@tanstack/react-start/server";
 import { connectDB } from "../../server/db/index";
 import {
   User,
@@ -8,7 +8,9 @@ import {
   Question,
   QuestionAttempt,
   UserReward,
+  PlayerProgress,
 } from "../../server/db/schemas";
+import type { GoogleUser } from "../google-auth";
 
 export const getMapData = createServerFn({ method: "GET" }).handler(async () => {
   await connectDB();
@@ -28,8 +30,136 @@ export const getMilestoneQuestions = createServerFn({ method: "GET" })
     return JSON.parse(JSON.stringify(questions));
   });
 
+export const getGuestUser = createServerFn({ method: "GET" }).handler(async () => {
+  await connectDB();
+  let userId = getCookie("guest_user_id");
+
+  if (!userId) {
+    const newUser = await User.create({
+      name: "Guest Explorer",
+      avatar: "mia",
+      total_xp: 0,
+      completed_milestones: [],
+    });
+    userId = newUser._id.toString();
+    setCookie("guest_user_id", userId!, { maxAge: 60 * 60 * 24 * 365, path: "/" });
+  }
+
+  const user = await User.findById(userId).lean();
+  if (!user) {
+    const newUser = await User.create({
+      name: "Guest Explorer",
+      avatar: "mia",
+      total_xp: 0,
+      completed_milestones: [],
+    });
+    userId = newUser._id.toString();
+    setCookie("guest_user_id", userId!, { maxAge: 60 * 60 * 24 * 365, path: "/" });
+    return JSON.parse(JSON.stringify(newUser));
+  }
+
+  return JSON.parse(JSON.stringify(user));
+});
+
+export const updateAvatar = createServerFn({ method: "POST" })
+  .validator((avatarId: string) => avatarId)
+  .handler(async (ctx) => {
+    await connectDB();
+    const userId = getCookie("guest_user_id");
+    if (!userId) throw new Error("Unauthorized");
+
+    const updated = await User.findByIdAndUpdate(
+      userId,
+      { avatar: ctx.data },
+      { new: true },
+    ).lean();
+    return JSON.parse(JSON.stringify(updated));
+  });
+
+export const upsertGoogleUser = createServerFn({ method: "POST" })
+  .validator((user: GoogleUser) => user)
+  .handler(async (ctx) => {
+    await connectDB();
+    const googleUser = ctx.data;
+
+    const updated = await User.findOneAndUpdate(
+      { google_sub: googleUser.sub },
+      {
+        $set: {
+          name: googleUser.name,
+          email: googleUser.email,
+          google_sub: googleUser.sub,
+          picture: googleUser.picture,
+        },
+        $setOnInsert: {
+          avatar: null,
+          total_xp: 0,
+          completed_milestones: [],
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+      },
+    ).lean();
+
+    const userId = updated?._id?.toString();
+    if (userId) {
+      setCookie("guest_user_id", userId, { maxAge: 60 * 60 * 24 * 365, path: "/" });
+    }
+
+    return JSON.parse(JSON.stringify(updated));
+  });
+
+export const getPlayerState = createServerFn({ method: "GET" }).handler(async () => {
+  await connectDB();
+  const userId = getCookie("guest_user_id");
+  if (!userId) {
+    return { profile: null, completed: [], badges: [], progress: {} };
+  }
+
+  const [user, rewards, progressRows] = await Promise.all([
+    User.findById(userId).lean(),
+    UserReward.find({ user_id: userId, reward_type: "badge" }).lean(),
+    PlayerProgress.find({ user_id: userId }).lean(),
+  ]);
+
+  if (!user) {
+    return { profile: null, completed: [], badges: [], progress: {} };
+  }
+
+  const badges = rewards.map((reward) => reward.badge_id);
+  const progress = Object.fromEntries(
+    progressRows.map((row) => {
+      const mastery = row.attempted > 0 ? Math.round((row.correct / row.attempted) * 100) : 0;
+      return [
+        row.milestone_id,
+        {
+          milestone_id: row.milestone_id,
+          attempted: row.attempted,
+          correct: row.correct,
+          mastery,
+          completed: mastery >= 80 && row.attempted >= 5,
+        },
+      ];
+    }),
+  );
+
+  return {
+    profile: {
+      name: user.name,
+      avatar: user.avatar ?? null,
+      total_xp: user.total_xp ?? 0,
+      badges,
+    },
+    completed: user.completed_milestones ?? [],
+    badges,
+    progress: JSON.parse(JSON.stringify(progress)),
+  };
+});
+
 export const submitQuestionAttempt = createServerFn({ method: "POST" })
-  .validator((data: { questionId: string; correct: boolean }) => data)
+  .validator((data: { milestoneId: string; questionId: string; correct: boolean }) => data)
   .handler(async (ctx) => {
     await connectDB();
     const userId = getCookie("guest_user_id");
@@ -42,6 +172,31 @@ export const submitQuestionAttempt = createServerFn({ method: "POST" })
       correct: ctx.data.correct,
     });
 
+    const progress = await PlayerProgress.findOneAndUpdate(
+      { user_id: userId, milestone_id: ctx.data.milestoneId },
+      {
+        $inc: {
+          attempted: 1,
+          correct: ctx.data.correct ? 1 : 0,
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+      },
+    ).lean();
+
+    const mastery =
+      progress!.attempted > 0 ? Math.round((progress!.correct / progress!.attempted) * 100) : 0;
+    const progressSummary = {
+      milestone_id: ctx.data.milestoneId,
+      attempted: progress!.attempted,
+      correct: progress!.correct,
+      mastery,
+      completed: mastery >= 80 && progress!.attempted >= 5,
+    };
+
     if (ctx.data.correct) {
       // Award 10 XP
       const user = await User.findByIdAndUpdate(
@@ -49,13 +204,13 @@ export const submitQuestionAttempt = createServerFn({ method: "POST" })
         { $inc: { total_xp: 10 } },
         { new: true },
       ).lean();
-      return { success: true, xpEarned: 10, totalXp: user!.total_xp };
+      return { success: true, xpEarned: 10, totalXp: user!.total_xp, progress: progressSummary };
     }
-    return { success: true, xpEarned: 0 };
+    return { success: true, xpEarned: 0, progress: progressSummary };
   });
 
 export const completeMilestone = createServerFn({ method: "POST" })
-  .validator((milestoneId: string) => milestoneId)
+  .validator((data: { milestoneId: string; bonusXp?: number }) => data)
   .handler(async (ctx) => {
     await connectDB();
     const userId = getCookie("guest_user_id");
@@ -64,12 +219,13 @@ export const completeMilestone = createServerFn({ method: "POST" })
     const user = await User.findById(userId);
     if (!user) throw new Error("User not found");
 
-    if (!user.completed_milestones.includes(ctx.data)) {
-      user.completed_milestones.push(ctx.data);
+    if (!user.completed_milestones.includes(ctx.data.milestoneId)) {
+      user.completed_milestones.push(ctx.data.milestoneId);
 
-      const milestone = await Milestone.findOne({ id: ctx.data });
+      const milestone = await Milestone.findOne({ id: ctx.data.milestoneId });
       const xpReward = milestone ? milestone.xp_reward : 50;
-      user.total_xp += xpReward;
+      const totalReward = xpReward + (ctx.data.bonusXp ?? 0);
+      user.total_xp += totalReward;
 
       await user.save();
 
@@ -98,7 +254,7 @@ export const completeMilestone = createServerFn({ method: "POST" })
 
       return {
         success: true,
-        xpEarned: xpReward,
+        xpEarned: totalReward,
         totalXp: user.total_xp,
         badgeEarned: earnedBadge,
       };

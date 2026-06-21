@@ -9,7 +9,7 @@ export const Route = createFileRoute("/auth/callback/google")({
 
 function AuthCallbackPage() {
   const navigate = useNavigate();
-  const { login, user, avatar } = useGame();
+  const { login, user, avatar, isLoading } = useGame();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,14 +32,14 @@ function AuthCallbackPage() {
 
   // Redirect user to right route once auth context synchronizes
   useEffect(() => {
-    if (user) {
+    if (!isLoading && user) {
       if (avatar) {
         navigate({ to: "/map" });
       } else {
         navigate({ to: "/avatar" });
       }
     }
-  }, [user, avatar]);
+  }, [isLoading, user, avatar]);
 
   if (error) {
     return (

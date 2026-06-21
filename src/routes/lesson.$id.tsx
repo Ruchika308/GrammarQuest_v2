@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { MILESTONES, useGame, type MilestoneId } from "@/lib/game-store";
+import { useGame, type MilestoneId } from "@/lib/game-store";
 import { ProgressBar } from "@/components/ProgressBar";
 import { HeartsBadge, XPBadge } from "@/components/XPBadge";
 import { LessonCard } from "@/components/LessonCard";
@@ -9,7 +9,6 @@ import { trackEvent } from "@/lib/analytics";
 import { playCorrectSound, playIncorrectSound, playCompleteSound } from "@/lib/sounds";
 import { generateSessionQuestions } from "@/lib/session";
 import milestonesData from "@/lib/data/milestones.json";
-import pathsData from "@/lib/data/paths.json";
 
 const milestoneIntroContent: Record<
   string,
@@ -41,18 +40,6 @@ const milestoneIntroContent: Record<
   },
 };
 
-const badgeEmojis: Record<string, string> = {
-  MN: "🏷️ Name Finder",
-  SN: "👑 Royal Messenger",
-  OM: "🌉 Bridge Builder",
-  SP: "🧙 Word Wizard",
-  TT: "🤝 Team Keeper",
-  MW: "🛠️ Master Builder",
-  FT: "🌳 Family Guardian",
-  IT: "💎 Treasure Finder",
-  OI: "🏝️ Island Protector",
-};
-
 export const Route = createFileRoute("/lesson/$id")({
   head: () => ({ meta: [{ title: "Quest — GrammarQuest" }] }),
   component: LessonPage,
@@ -61,15 +48,7 @@ export const Route = createFileRoute("/lesson/$id")({
 function LessonPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { user, completeMilestone, xp, submitQuestion, completed, addXp, isLoading } = useGame();
-
-  if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
-  }
-
-  if (!user) {
-    return <Navigate to="/" />;
-  }
+  const { user, completeMilestone, xp, submitQuestion, completed, isLoading } = useGame();
 
   const milestone = milestonesData.find((m: any) => m.id === id);
 
@@ -117,6 +96,14 @@ function LessonPage() {
     }
   }, [milestone?.id, question]);
 
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/" />;
+  }
+
   if (!milestone) return <Navigate to="/map" />;
   if (!isUnlocked() && !forceReplay) return <Navigate to="/map" />;
 
@@ -126,7 +113,9 @@ function LessonPage() {
     );
 
   const isLevelCompleted = completed.includes(milestone.id as any) && !forceReplay;
-  const badge = badgeEmojis[milestone.id] || "🏆 Champion";
+  const badgeName = milestone.badge_name || "Champion";
+  const badgeIcon = milestone.badge_icon || "🏆";
+  const earnedBadge = `${badgeIcon} ${badgeName}`;
 
   if (isLevelCompleted) {
     const hasPlayedSession = Object.keys(sessionAnswers).length > 0;
@@ -151,6 +140,10 @@ function LessonPage() {
           <div className="rounded-3xl bg-white p-8 shadow-xl border border-indigo-50 text-center">
             <div className="text-6xl mb-4 animate-bounce">🏆</div>
             <h1 className="text-3xl font-display font-bold text-foreground">Quest Conquered!</h1>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 font-display font-bold text-amber-800">
+              <span className="text-lg leading-none">{badgeIcon}</span>
+              <span>{badgeName}</span>
+            </div>
             
             {hasPlayedSession ? (
               <div className="mt-3 px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-800 font-display font-bold">
@@ -285,7 +278,7 @@ function LessonPage() {
 
   async function handleAnswer(correct: boolean, userAnswer: string) {
     if (question) {
-      submitQuestion(milestone!.id, question.id, correct).catch(console.error);
+      await submitQuestion(milestone!.id, question.id, correct);
       setSessionAnswers((prev) => ({
         ...prev,
         [question.id]: { userAnswer, correct },
@@ -315,11 +308,10 @@ function LessonPage() {
       const isPerfect = (hearts - (correct ? 0 : 1)) === 3;
       if (isPerfect) {
         completeXp += 10;
-        addXp(10); // Reward perfect bonus XP to profile
       }
 
       setEarned((e) => e + 50 + (isPerfect ? 10 : 0));
-      completeMilestone(milestone!.id as MilestoneId, badge);
+      await completeMilestone(milestone!.id as MilestoneId, earnedBadge, isPerfect ? 10 : 0);
       trackEvent("Milestone Completed", { milestone_id: milestone!.id, perfect: isPerfect });
 
       setTimeout(() => {
@@ -445,7 +437,9 @@ function LessonPage() {
 
       <RewardModal
         open={showReward}
-        badge={badge}
+        badge={earnedBadge}
+        badgeName={badgeName}
+        badgeIcon={badgeIcon}
         xp={earned}
         milestoneTitle={milestoneTitle}
         onContinue={() => {

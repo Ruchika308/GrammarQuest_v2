@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useGame } from "@/lib/game-store";
 import { getGoogleAuthUrl } from "@/lib/google-auth";
@@ -21,17 +20,6 @@ function Landing() {
   const { user, logout, avatar } = useGame();
   const navigate = useNavigate();
 
-  // Sync route if user is logged in
-  useEffect(() => {
-    if (user) {
-      if (avatar) {
-        navigate({ to: "/map" });
-      } else {
-        navigate({ to: "/avatar" });
-      }
-    }
-  }, [user, avatar]);
-
   function handleGoogleLogin() {
     window.location.href = getGoogleAuthUrl();
   }
@@ -53,8 +41,8 @@ function Landing() {
           </p>
         </div>
 
-        {/* Hero Image - Scaled down */}
-        <div className="relative my-2 aspect-[1.25/1] w-full max-w-[11rem] overflow-hidden rounded-[2rem] shadow-lg border-2 border-white">
+        {/* Hero Image - Expanded to match title width */}
+        <div className="relative my-2 aspect-[1.5/1] w-full max-w-[18rem] overflow-hidden rounded-[2rem] shadow-lg border-2 border-white md:max-w-[20rem]">
           <img
             src="/hero-bg.jpg"
             alt="GrammarQuest Adventure"
