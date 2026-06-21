@@ -362,3 +362,28 @@ export const getUserBadges = createServerFn({ method: "GET" }).handler(async () 
   const rewards = await UserReward.find({ user_id: userId, reward_type: "badge" }).lean();
   return toPlain(rewards.map((reward) => reward.badge_id));
 });
+
+export const getMilestoneAttempts = createServerFn({ method: "GET" })
+  .validator((milestoneId: string) => milestoneId)
+  .handler(async (ctx) => {
+    const { connectDB, QuestionAttempt, Question } = await getDb();
+    await connectDB();
+
+    const userId = getCookie("guest_user_id");
+    if (!userId) {
+      return [];
+    }
+
+    const questions = await Question.find({ milestone_id: ctx.data }).select("id").lean();
+    const questionIds = questions.map((q: any) => q.id);
+
+    const attempts = await QuestionAttempt.find({
+      user_id: userId,
+      question_id: { $in: questionIds },
+    })
+      .sort({ timestamp: -1 })
+      .limit(5)
+      .lean();
+
+    return toPlain(attempts.reverse());
+  });

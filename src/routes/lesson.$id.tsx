@@ -10,6 +10,8 @@ import { playCorrectSound, playIncorrectSound, playCompleteSound } from "@/lib/s
 import { generateSessionQuestions } from "@/lib/session";
 import milestonesData from "@/lib/data/milestones.json";
 import questionsData from "@/lib/data/questions.json";
+import { getMilestoneAttempts } from "@/lib/api/game.server";
+import { storage } from "@/lib/storage";
 
 const milestoneIntroContent: Record<
   string,
@@ -75,41 +77,148 @@ function LessonPage() {
 
   // Generate local session of questions or load completed ones for review
   useEffect(() => {
-    if (milestone) {
+    let cancelled = false;
+
+    async function loadQuestions() {
+      if (!milestone) return;
+
       const isLevelCompleted = completed.includes(milestone.id as any) && !forceReplay;
+      console.log("[GQ DEBUG] milestone.id:", milestone.id, "completed:", completed, "isLevelCompleted:", isLevelCompleted, "forceReplay:", forceReplay);
       
       if (isLevelCompleted) {
-        // In review mode: try to load the completed question IDs
-        let loadedQuestions: any[] = [];
-        if (typeof window !== "undefined") {
+        setIsQuestionsLoading(true);
+        let attempts: { question_id: string; correct: boolean; selected_answer?: string | null }[] = [];
+
+        // 1. Try loading from server first
+        try {
+          console.log("[GQ DEBUG] Fetching attempts from server for:", milestone.id);
+          const serverAttempts = await getMilestoneAttempts({ data: milestone.id });
+          console.log("[GQ DEBUG] Server attempts fetched:", serverAttempts);
+          if (serverAttempts && serverAttempts.length > 0) {
+            attempts = serverAttempts;
+          }
+        } catch (e) {
+          console.error("[GQ DEBUG] Failed to load attempts from server:", e);
+        }
+
+        // 2. Fall back to local storage if server attempts are empty
+        if (attempts.length === 0) {
           try {
+            console.log("[GQ DEBUG] Falling back to local storage for:", milestone.id);
+            const localAnswers = storage.getAnswers();
+            console.log("[GQ DEBUG] Local storage answers:", localAnswers);
+            const milestoneAttempts = localAnswers
+              .filter((ans) => ans.milestone_id === milestone.id)
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) // latest first
+              .slice(0, 5) // last 5
+              .reverse(); // chronological order
+            console.log("[GQ DEBUG] Filtered milestone attempts:", milestoneAttempts);
+            if (milestoneAttempts.length > 0) {
+              attempts = milestoneAttempts;
+            }
+          } catch (e) {
+            console.error("[GQ DEBUG] Failed to load attempts from local storage:", e);
+          }
+        }
+
+        // 3. Fall back to stored completed question IDs list (for past sessions or missing records)
+        let fallbackQuestions: any[] = [];
+        if (attempts.length === 0 && typeof window !== "undefined") {
+          try {
+            console.log("[GQ DEBUG] Falling back to gq_completed_questions key");
             const storedIds = localStorage.getItem(`gq_completed_questions_${milestone.id}`);
             if (storedIds) {
               const ids: string[] = JSON.parse(storedIds);
-              // Find the corresponding questions in questionsData
-              loadedQuestions = ids
+              fallbackQuestions = ids
                 .map((id) => (questionsData as any[]).find((q) => q.id === id))
                 .filter(Boolean);
             }
           } catch (e) {
-            console.error("Failed to load completed milestone questions:", e);
+            console.error("[GQ DEBUG] Failed to load completed questions key:", e);
           }
         }
-        
-        if (loadedQuestions.length > 0) {
-          setQuestions(loadedQuestions);
+
+        // Lock in a stable fallback set if we have absolutely no history, so it doesn't change on future refreshes/clicks
+        if (attempts.length === 0 && fallbackQuestions.length === 0) {
+          console.log("[GQ DEBUG] No history found. Generating stable fallback set.");
+          const generated = generateSessionQuestions(id, completed);
+          if (generated.length > 0) {
+            fallbackQuestions = generated;
+            if (typeof window !== "undefined") {
+              try {
+                const questionIds = generated.map((q) => q.id);
+                localStorage.setItem(`gq_completed_questions_${milestone.id}`, JSON.stringify(questionIds));
+              } catch (e) {
+                console.error("[GQ DEBUG] Failed to save stable fallback questions:", e);
+              }
+            }
+          }
+        }
+
+        if (fallbackQuestions.length > 0 && !cancelled) {
+          setQuestions(fallbackQuestions);
+          setSessionAnswers({});
+          setCorrectAnswersCount(0);
           setIsQuestionsLoading(false);
           return;
         }
+
+        // 4. Resolve questions and populate states
+        console.log("[GQ DEBUG] Final attempts for review:", attempts);
+        if (attempts.length > 0) {
+          const loadedQuestions = attempts
+            .map((att) => {
+              const qObj = (questionsData as any[]).find((q) => q.id === att.question_id);
+              console.log("[GQ DEBUG] Mapping attempt question_id:", att.question_id, "found question object:", qObj);
+              return qObj;
+            })
+            .filter(Boolean);
+          
+          console.log("[GQ DEBUG] Loaded questions list:", loadedQuestions);
+          if (loadedQuestions.length > 0 && !cancelled) {
+            setQuestions(loadedQuestions);
+            
+            const answersMap: Record<string, { userAnswer: string; correct: boolean }> = {};
+            let correctCount = 0;
+            attempts.forEach((att) => {
+              answersMap[att.question_id] = {
+                userAnswer: att.selected_answer || "",
+                correct: att.correct,
+              };
+              if (att.correct) {
+                correctCount++;
+              }
+            });
+            
+            console.log("[GQ DEBUG] Setting sessionAnswers:", answersMap, "correctAnswersCount:", correctCount);
+            setSessionAnswers(answersMap);
+            setCorrectAnswersCount(correctCount);
+            setIsQuestionsLoading(false);
+            return;
+          }
+        }
       }
 
-      if (isUnlocked() || forceReplay) {
+      // If not completed, or in replay mode, or fallback: generate fresh questions
+      if (!cancelled && (isUnlocked() || forceReplay)) {
+        console.log("[GQ DEBUG] Generating new questions. forceReplay:", forceReplay);
         const generated = generateSessionQuestions(id, completed);
         setQuestions(generated);
+        // Clear old session answers if replaying
+        if (forceReplay) {
+          setSessionAnswers({});
+          setCorrectAnswersCount(0);
+        }
         setIsQuestionsLoading(false);
       }
     }
-  }, [id, forceReplay, completed]);
+
+    void loadQuestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, forceReplay, completed, milestone]);
 
   const total = questions.length;
   const question = questions[idx];
