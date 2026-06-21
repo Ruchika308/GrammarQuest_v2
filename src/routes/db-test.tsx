@@ -1,29 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { connectDB } from "../server/db/index";
-import { Question } from "../server/db/schemas";
+import { createServerFn } from "@tanstack/react-start";
+
+// This function runs strictly on the server and is stripped from the client bundle.
+const testConnection = createServerFn({ method: "GET" }).handler(async () => {
+  console.log("[DB TEST] Connecting to DB...");
+  try {
+    const { connectDB } = await import("../server/db/index");
+    const { Question } = await import("../server/db/schemas");
+
+    await connectDB();
+    console.log("[DB TEST] Mongoose connection succeeded.");
+    const count = await Question.countDocuments();
+    console.log(`[DB TEST] Total questions count: ${count}`);
+    return {
+      success: true,
+      message: "Successfully connected to MongoDB!",
+      count,
+    };
+  } catch (error: any) {
+    console.error("[DB TEST] Connection failed:", error);
+    return {
+      success: false,
+      message: "Failed to connect to MongoDB",
+      error: error.message || String(error),
+      stack: error.stack,
+    };
+  }
+});
 
 export const Route = createFileRoute("/db-test")({
   loader: async () => {
-    console.log("[DB TEST] Connecting to DB...");
-    try {
-      await connectDB();
-      console.log("[DB TEST] Mongoose connection succeeded.");
-      const count = await Question.countDocuments();
-      console.log(`[DB TEST] Total questions count: ${count}`);
-      return {
-        success: true,
-        message: "Successfully connected to MongoDB!",
-        count,
-      };
-    } catch (error: any) {
-      console.error("[DB TEST] Connection failed:", error);
-      return {
-        success: false,
-        message: "Failed to connect to MongoDB",
-        error: error.message || String(error),
-        stack: error.stack,
-      };
-    }
+    return await testConnection();
   },
   component: DbTestComponent,
 });
