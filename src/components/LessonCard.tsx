@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { resolveAssetEmoji, getTwemojiUrl } from "@/lib/asset-registry";
 import { playCorrectSound, playIncorrectSound } from "@/lib/sounds";
 
@@ -37,6 +37,11 @@ export function LessonCard({ question, onAnswer }: Props) {
     color: string;
     option: string;
   } | null>(null);
+  const isCheckingRef = useRef(false);
+
+  useEffect(() => {
+    isCheckingRef.current = false;
+  }, [question.id]);
 
   const correctAnswer =
     question.type === "match"
@@ -48,7 +53,8 @@ export function LessonCard({ question, onAnswer }: Props) {
         : question.answer;
 
   function check(value: string) {
-    if (checked) return;
+    if (checked || isCheckingRef.current) return;
+    isCheckingRef.current = true;
     setSelected(value);
     setChecked(true);
 
@@ -63,6 +69,7 @@ export function LessonCard({ question, onAnswer }: Props) {
 
     setTimeout(() => {
       onAnswer(isRight, value);
+      isCheckingRef.current = false;
       setSelected(null);
       setChecked(false);
       setActiveEffect(null);
@@ -167,23 +174,30 @@ function MatchQuestion({
     text: string;
     color: string;
   } | null>(null);
+  const isCheckingRef = useRef(false);
+
+  useEffect(() => {
+    isCheckingRef.current = false;
+  }, [question.id]);
 
   const rights = [...question.pairs].sort(() => 0.5 - Math.random());
 
   function pickRight(r: string) {
-    if (checked || !leftSel) return;
+    if (checked || isCheckingRef.current || !leftSel) return;
     const correct = question.pairs.find((p: any) => p.left === leftSel)?.right === r;
     if (correct) {
       const next = { ...matches, [leftSel]: r };
       setMatches(next);
       setLeftSel(null);
       if (Object.keys(next).length === question.pairs.length) {
+        isCheckingRef.current = true;
         playCorrectSound();
         setChecked(true);
         const effect = CORRECT_EFFECTS[Math.floor(Math.random() * CORRECT_EFFECTS.length)];
         setActiveEffect(effect);
         setTimeout(() => {
           onAnswer(true, "Successfully matched all words! ✅");
+          isCheckingRef.current = false;
           setChecked(false);
           setMatches({});
           setActiveEffect(null);
@@ -270,13 +284,19 @@ function SentenceQuestion({
     text: string;
     color: string;
   } | null>(null);
+  const isCheckingRef = useRef(false);
+
+  useEffect(() => {
+    isCheckingRef.current = false;
+  }, [question.id]);
 
   const sentenceAnswer = Array.isArray(question.answer)
     ? question.answer.join(" ")
     : question.answer;
 
   function submit() {
-    if (checked) return;
+    if (checked || isCheckingRef.current) return;
+    isCheckingRef.current = true;
     const cleaned = picked.map((p: string) => p.split("#")[0]);
     const cleanSentence = cleaned.join(" ");
     const correct = cleanSentence === sentenceAnswer;
@@ -292,6 +312,7 @@ function SentenceQuestion({
 
     setTimeout(() => {
       onAnswer(correct, cleanSentence);
+      isCheckingRef.current = false;
       setChecked(false);
       setPicked([]);
       setActiveEffect(null);
