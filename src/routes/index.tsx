@@ -60,10 +60,13 @@ function Landing() {
               Continue Adventure →
             </Link>
             <div className="flex items-center gap-2 text-xs mt-1">
-              {user.picture && (
+              {user.picture && (user.picture.startsWith("http") || user.picture.startsWith("/")) && (
                 <img
                   src={user.picture}
                   alt={user.name}
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
                   className="h-5 w-5 rounded-full border border-primary/20"
                 />
               )}
@@ -95,20 +98,23 @@ function Landing() {
         )}
 
         {/* Feature Cards - Reduced padding & margins */}
-        <div className="mt-2 grid w-full max-w-xs grid-cols-2 gap-2">
-          <div className="rounded-2xl bg-white/90 p-2.5 text-center shadow-sm border border-slate-100">
-            <div className="text-[10px] font-display font-bold uppercase tracking-widest text-muted-foreground">
-              Earn XP
-            </div>
-            <div className="text-lg">⭐</div>
-            <div className="font-display font-bold text-xs text-foreground">+50 per quest</div>
-          </div>
+        <div className="mt-2 w-full max-w-xs">
           <div className="rounded-2xl bg-white/90 p-2.5 text-center shadow-sm border border-slate-100">
             <div className="text-[10px] font-display font-bold uppercase tracking-widest text-muted-foreground">
               Collect Badges
             </div>
-            <div className="flex justify-center gap-0.5 text-lg">🏹 👑 ✨</div>
-            <div className="font-display font-bold text-xs text-foreground">3 to unlock</div>
+            <div className="flex justify-center gap-1.5 text-base mt-1 flex-wrap">
+              <span>🏹</span>
+              <span>👑</span>
+              <span>✨</span>
+              <span>🔮</span>
+              <span>🐾</span>
+              <span>🔨</span>
+              <span>🛡️</span>
+              <span>💎</span>
+              <span>🔱</span>
+            </div>
+            <div className="font-display font-bold text-xs text-foreground mt-1">9 to unlock</div>
           </div>
         </div>
       </div>

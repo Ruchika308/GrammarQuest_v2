@@ -8,7 +8,7 @@
     "order": 1,
     "xp_reward": 50,
     "badge_name": "Name Finder",
-    "badge_icon": "️",
+    "badge_icon": "🏹",
     "concept": "common_noun"
   },
   {
@@ -20,7 +20,7 @@
     "order": 2,
     "xp_reward": 50,
     "badge_name": "Royal Messenger",
-    "badge_icon": "",
+    "badge_icon": "👑",
     "concept": "proper_noun"
   },
   {
@@ -32,7 +32,7 @@
     "order": 3,
     "xp_reward": 50,
     "badge_name": "Bridge Builder",
-    "badge_icon": "",
+    "badge_icon": "✨",
     "concept": "singular_plural"
   },
   {
@@ -44,7 +44,7 @@
     "order": 4,
     "xp_reward": 50,
     "badge_name": "Word Wizard",
-    "badge_icon": "彩",
+    "badge_icon": "🔮",
     "concept": "irregular_plural"
   },
   {
@@ -56,7 +56,7 @@
     "order": 5,
     "xp_reward": 50,
     "badge_name": "Team Keeper",
-    "badge_icon": "",
+    "badge_icon": "🐾",
     "concept": "collective_noun"
   },
   {
@@ -68,7 +68,7 @@
     "order": 6,
     "xp_reward": 50,
     "badge_name": "Master Builder",
-    "badge_icon": "",
+    "badge_icon": "🔨",
     "concept": "material_noun"
   },
   {
@@ -80,7 +80,7 @@
     "order": 7,
     "xp_reward": 50,
     "badge_name": "Family Guardian",
-    "badge_icon": "",
+    "badge_icon": "🛡️",
     "concept": "gender_noun"
   },
   {
@@ -92,7 +92,7 @@
     "order": 8,
     "xp_reward": 50,
     "badge_name": "Treasure Finder",
-    "badge_icon": "",
+    "badge_icon": "💎",
     "concept": "abstract_noun"
   },
   {
@@ -104,7 +104,7 @@
     "order": 9,
     "xp_reward": 50,
     "badge_name": "Island Protector",
-    "badge_icon": "️",
+    "badge_icon": "🔱",
     "concept": "possessive_noun"
   }
 ]

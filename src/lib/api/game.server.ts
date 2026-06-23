@@ -321,15 +321,15 @@ export const completeMilestone = createServerFn({ method: "POST" })
       await user.save();
 
       const badgeTitles: Record<string, string> = {
-        MN: "Name Finder",
-        SN: "Royal Messenger",
-        OM: "Bridge Builder",
-        SP: "Word Wizard",
-        TT: "Team Keeper",
-        MW: "Master Builder",
-        FT: "Family Guardian",
-        IT: "Treasure Finder",
-        OI: "Island Protector",
+        MN: "🏹 Name Finder",
+        SN: "👑 Royal Messenger",
+        OM: "✨ Bridge Builder",
+        SP: "🔮 Word Wizard",
+        TT: "🐾 Team Keeper",
+        MW: "🔨 Master Builder",
+        FT: "🛡️ Family Guardian",
+        IT: "💎 Treasure Finder",
+        OI: "🔱 Island Protector",
       };
 
       const earnedBadge =

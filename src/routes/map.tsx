@@ -108,14 +108,22 @@ function MapPage() {
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {badges.map((b) => (
-                <span
-                  key={b}
-                  className="rounded-full bg-amber-100 px-3 py-1 font-display font-bold text-amber-700"
-                >
-                  {b}
-                </span>
-              ))}
+              {badges.map((b) => {
+                // Prepend emoji if not already present
+                const cleanName = b.replace(/^[^a-zA-Z0-9]+/, "").trim();
+                const milestone = milestonesData.find(
+                  (m: any) => m.badge_name.toLowerCase() === cleanName.toLowerCase()
+                );
+                const display = milestone && milestone.badge_icon ? `${milestone.badge_icon} ${cleanName}` : b;
+                return (
+                  <span
+                    key={b}
+                    className="rounded-full bg-amber-100 px-3 py-1 font-display font-bold text-amber-700"
+                  >
+                    {display}
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>

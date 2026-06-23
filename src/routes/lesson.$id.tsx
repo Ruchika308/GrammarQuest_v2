@@ -74,6 +74,13 @@ function LessonPage() {
   const [showIntro, setShowIntro] = useState(true);
   const [sessionAnswers, setSessionAnswers] = useState<Record<string, { userAnswer: string; correct: boolean }>>({});
   const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
+  const [initialXp, setInitialXp] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && initialXp === null) {
+      setInitialXp(xp);
+    }
+  }, [isLoading, xp, initialXp]);
 
   // Generate local session of questions or load completed ones for review
   useEffect(() => {
@@ -514,7 +521,7 @@ function LessonPage() {
           <div className="text-sm font-display font-bold uppercase tracking-widest text-primary">
             {milestoneTitle}
           </div>
-          <XPBadge xp={xp + earned} />
+          <XPBadge xp={(initialXp ?? xp) + earned} />
         </div>
 
         <div className="rounded-3xl bg-white p-6 shadow-xl mt-2">
