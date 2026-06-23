@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { resolveAssetEmoji, getTwemojiUrl } from "@/lib/asset-registry";
 
-const CORRECT_FEEDBACK_MS = 1400;
+const CORRECT_FEEDBACK_MS = 1000;
 
 const DEFAULT_EMOJIS = ["😄", "🧠", "🎒", "🧙", "🌟", "🚀", "🎨", "🦖", "🦁", "🎈", "🦄", "🎯", "💡"];
 
