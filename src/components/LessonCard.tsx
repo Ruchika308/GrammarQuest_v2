@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { resolveAssetEmoji, getTwemojiUrl } from "@/lib/asset-registry";
+import { playCorrectSound, playIncorrectSound } from "@/lib/sounds";
 
 const CORRECT_FEEDBACK_MS = 1000;
 
@@ -53,8 +54,11 @@ export function LessonCard({ question, onAnswer }: Props) {
 
     const isRight = value === correctAnswer;
     if (isRight) {
+      playCorrectSound();
       const effect = CORRECT_EFFECTS[Math.floor(Math.random() * CORRECT_EFFECTS.length)];
       setActiveEffect({ ...effect, option: value });
+    } else {
+      playIncorrectSound();
     }
 
     setTimeout(() => {
@@ -174,6 +178,7 @@ function MatchQuestion({
       setMatches(next);
       setLeftSel(null);
       if (Object.keys(next).length === question.pairs.length) {
+        playCorrectSound();
         setChecked(true);
         const effect = CORRECT_EFFECTS[Math.floor(Math.random() * CORRECT_EFFECTS.length)];
         setActiveEffect(effect);
@@ -185,6 +190,7 @@ function MatchQuestion({
         }, CORRECT_FEEDBACK_MS);
       }
     } else {
+      playIncorrectSound();
       setWrong(r);
       setTimeout(() => setWrong(null), 400);
     }
@@ -277,8 +283,11 @@ function SentenceQuestion({
     setChecked(true);
 
     if (correct) {
+      playCorrectSound();
       const effect = CORRECT_EFFECTS[Math.floor(Math.random() * CORRECT_EFFECTS.length)];
       setActiveEffect(effect);
+    } else {
+      playIncorrectSound();
     }
 
     setTimeout(() => {

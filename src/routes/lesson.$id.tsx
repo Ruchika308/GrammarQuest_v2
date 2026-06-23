@@ -446,10 +446,8 @@ function LessonPage() {
     }
 
     if (correct) {
-      playCorrectSound();
       setEarned((e) => e + 10);
     } else {
-      playIncorrectSound();
       setHearts((h) => Math.max(0, h - 1));
     }
 
