@@ -46,31 +46,22 @@ export const getGuestUser = createServerFn({ method: "GET" }).handler(async () =
   let userId = getCookie("guest_user_id");
 
   if (!userId) {
-    const newUser = await User.create({
-      name: "Guest Explorer",
-      avatar: "mia",
-      total_xp: 0,
-      completed_milestones: [],
-    });
-    userId = newUser._id.toString();
-    setCookie("guest_user_id", userId, { maxAge: 60 * 60 * 24 * 365, path: "/" });
+    return null;
   }
 
   const user = await User.findById(userId).lean();
   if (!user) {
-    const newUser = await User.create({
-      name: "Guest Explorer",
-      avatar: "mia",
-      total_xp: 0,
-      completed_milestones: [],
-    });
-    userId = newUser._id.toString();
-    setCookie("guest_user_id", userId, { maxAge: 60 * 60 * 24 * 365, path: "/" });
-    return toPlain(newUser);
+    return null;
   }
 
   return toPlain(user);
 });
+
+export const logoutServer = createServerFn({ method: "POST" }).handler(async () => {
+  setCookie("guest_user_id", "", { maxAge: 0, path: "/" });
+  return { success: true };
+});
+
 
 export const updateAvatar = createServerFn({ method: "POST" })
   .validator((avatarId: string) => avatarId)
@@ -91,6 +82,49 @@ export const updateAvatar = createServerFn({ method: "POST" })
 
     return toPlain(updated);
   });
+
+async function fetchPlayerStateHelper(userId: string) {
+  const { User, UserReward, PlayerProgress } = await getDb();
+
+  const [user, rewards, progressRows] = await Promise.all([
+    User.findById(userId).lean(),
+    UserReward.find({ user_id: userId, reward_type: "badge" }).lean(),
+    PlayerProgress.find({ user_id: userId }).lean(),
+  ]);
+
+  if (!user) {
+    return { profile: null, completed: [], badges: [], progress: {} };
+  }
+
+  const badges = rewards.map((reward) => reward.badge_id);
+  const progress = Object.fromEntries(
+    progressRows.map((row) => {
+      const mastery = row.attempted > 0 ? Math.round((row.correct / row.attempted) * 100) : 0;
+      return [
+        row.milestone_id,
+        {
+          milestone_id: row.milestone_id,
+          attempted: row.attempted,
+          correct: row.correct,
+          mastery,
+          completed: mastery >= 80 && row.attempted >= 5,
+        },
+      ];
+    }),
+  );
+
+  return {
+    profile: {
+      name: user.name,
+      avatar: user.avatar ?? null,
+      total_xp: user.total_xp ?? 0,
+      badges,
+    },
+    completed: user.completed_milestones ?? [],
+    badges,
+    progress: toPlain(progress),
+  };
+}
 
 export const upsertGoogleUser = createServerFn({ method: "POST" })
   .validator((user: GoogleUser) => user)
@@ -180,11 +214,13 @@ export const upsertGoogleUser = createServerFn({ method: "POST" })
       setCookie("guest_user_id", updatedUserId, { maxAge: 60 * 60 * 24 * 365, path: "/" });
     }
 
-    return { success: true, userId: updatedUserId };
+    const state = updatedUserId ? await fetchPlayerStateHelper(updatedUserId) : null;
+
+    return { success: true, userId: updatedUserId, state };
   });
 
 export const getPlayerState = createServerFn({ method: "GET" }).handler(async () => {
-  const { connectDB, User, UserReward, PlayerProgress } = await getDb();
+  const { connectDB } = await getDb();
   await connectDB();
 
   const userId = getCookie("guest_user_id");
@@ -192,44 +228,7 @@ export const getPlayerState = createServerFn({ method: "GET" }).handler(async ()
     return { profile: null, completed: [], badges: [], progress: {} };
   }
 
-  const [user, rewards, progressRows] = await Promise.all([
-    User.findById(userId).lean(),
-    UserReward.find({ user_id: userId, reward_type: "badge" }).lean(),
-    PlayerProgress.find({ user_id: userId }).lean(),
-  ]);
-
-  if (!user) {
-    return { profile: null, completed: [], badges: [], progress: {} };
-  }
-
-  const badges = rewards.map((reward) => reward.badge_id);
-  const progress = Object.fromEntries(
-    progressRows.map((row) => {
-      const mastery = row.attempted > 0 ? Math.round((row.correct / row.attempted) * 100) : 0;
-      return [
-        row.milestone_id,
-        {
-          milestone_id: row.milestone_id,
-          attempted: row.attempted,
-          correct: row.correct,
-          mastery,
-          completed: mastery >= 80 && row.attempted >= 5,
-        },
-      ];
-    }),
-  );
-
-  return {
-    profile: {
-      name: user.name,
-      avatar: user.avatar ?? null,
-      total_xp: user.total_xp ?? 0,
-      badges,
-    },
-    completed: user.completed_milestones ?? [],
-    badges,
-    progress: toPlain(progress),
-  };
+  return await fetchPlayerStateHelper(userId);
 });
 
 export const submitQuestionAttempt = createServerFn({ method: "POST" })

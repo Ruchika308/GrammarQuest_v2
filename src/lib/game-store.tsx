@@ -6,7 +6,7 @@ import {
   getPlayerState,
   submitQuestionAttempt,
 } from "./api/game.server";
-import { getGuestUser, updateAvatar, upsertGoogleUser } from "./api/game.server";
+import { getGuestUser, updateAvatar, upsertGoogleUser, logoutServer } from "./api/game.server";
 
 export type AvatarId = "mia" | "leo" | "wizard" | "dragon";
 
@@ -87,13 +87,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const hydrateFromServer = useCallback(async (googleUser?: GoogleUser | null) => {
+    let serverState = null;
     if (googleUser) {
-      await upsertGoogleUser({ data: googleUser });
-    } else {
-      await getGuestUser();
+      const res = await upsertGoogleUser({ data: googleUser });
+      if (res?.state) {
+        serverState = res.state;
+      }
     }
-    const serverState = await getPlayerState();
-    if (serverState.profile) {
+    if (!serverState) {
+      serverState = await getPlayerState();
+    }
+    if (serverState?.profile) {
       syncLocalState(
         serverState.profile,
         serverState.progress,
@@ -166,6 +170,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setProfile(DEFAULT_PROFILE);
     setProgress({});
     setCompletedMilestones([]);
+    void logoutServer();
   }, []);
 
   const setAvatar = useCallback(async (avatarId: AvatarId) => {
